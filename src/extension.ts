@@ -6,8 +6,17 @@ import {
   registerConvertXLingPaperXmlToExcelCommand,
   registerTsvToTabularxCommand,
 } from './features';
+import { LingTeXViewProvider } from './panel/lingtexPanel';
 
 export function activate(context: vscode.ExtensionContext) {
+  // Sidebar webview panel
+  const provider = new LingTeXViewProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(LingTeXViewProvider.viewId, provider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    })
+  );
+
   // Real commands
   registerTsvToInterlinearCommand(context);
   registerConvertExcelToTabularxCommand(context);

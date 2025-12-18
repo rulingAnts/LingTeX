@@ -2,17 +2,13 @@
 
 LingTeX is a Visual Studio Code extension that adds linguistics authoring helpers for LaTeX. It is designed to complement LaTeX Workshop and LaTeX Utilities.
 
-## Commands (initial stubs)
-- LingTeX: Convert Excel → LaTeX tabularx
-- LingTeX: Convert XLingPaper XML → Excel
-- LingTeX: TSV → LaTeX tabularx
-- LingTeX: TSV → Interlinear (gb4e)
-- LingTeX: LaTeX tabularx → Excel
-- LingTeX: Find Missing Glosses
-- LingTeX: Sanitize Intro Sections
-- LingTeX: Split Sections
+## Sidebar Panel
+- Access the LingTeX panel from the Activity Bar (left sidebar) using the LingTeX icon.
+- The panel provides buttons for all features and simple forms for common options (e.g., TSV → Interlinear output mode, Excel export destination).
+- Use the Quick Actions to open TSV templates or run conversions without the Command Palette.
 
-These commands currently display confirmation messages. Next steps will port the existing TypeScript utilities into the extension to provide full functionality.
+## Commands
+LingTeX now uses a panel-only UX. Commands are hidden from the Command Palette; launch actions from the LingTeX panel in the Activity Bar. Title bar actions (Generate/Cancel) appear contextually when using TSV templates.
 
 ## Requirements
 - Recommended: LaTeX Workshop, LaTeX Utilities

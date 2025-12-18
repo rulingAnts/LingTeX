@@ -3,8 +3,8 @@
 Follow these steps after updating and restarting VS Code to ensure the LingTeX extension is installed and commands appear in the Command Palette.
 
 ## 1) Verify VS Code version
-- Help → About: confirm VS Code ≥ 1.85.0.
-- If lower, either update VS Code or temporarily relax the engine in `package.json` ("engines.vscode"). Repackage if you change it.
+- Help → About: confirm VS Code ≥ 1.85.0 (1.107.x is fully supported).
+- If lower than 1.85.0, either update VS Code or temporarily relax the engine in `package.json` ("engines.vscode"). Repackage if you change it.
 
 ## 2) Clean build and package the extension
 ```bash
@@ -35,7 +35,7 @@ npm run package   # uses npx @vscode/vsce package
 - Output → “Log (Extension Host)”: check for messages like “Cannot find module 'dist/extension.js'” or activation failures.
 - Developer: Show Running Extensions: verify LingTeX is listed after you try executing one of its commands.
 - Inspect the packaged VSIX (it’s a zip): confirm it contains `dist/extension.js` and that `package.json` has `"main": "./dist/extension.js"`.
-- If on an older VS Code, align `"engines": { "vscode": "^1.85.0" }` in `package.json` to your version, rebuild, and repackage.
+- If on an older VS Code (< 1.85.0), align `"engines": { "vscode": "^1.85.0" }` in `package.json` to your version, rebuild, and repackage.
 
 ## 6) Optional: run from source (dev host)
 - Use the launch config “Run Extension” to open an Extension Development Host.

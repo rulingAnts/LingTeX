@@ -18,6 +18,8 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished",
+    "onViewContainer:lingtex",
+    "onView:lingtex.panel",
     "onCommand:lingtex.convertExcelToTabularx",
     "onCommand:lingtex.convertXLingPaperXmlToExcel",
     "onCommand:lingtex.tsvToTabularx",
@@ -32,6 +34,31 @@
     "onCommand:lingtex.splitSections"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lingtex",
+          "title": "LingTeX",
+          "icon": "resources/lingtex-icon.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "lingtex.panel",
+        "contents": "# LingTeX\nLoading panel… If this message persists, please reload the window (Developer: Reload Window)."
+      }
+    ],
+    "views": {
+      "lingtex": [
+        {
+          "id": "lingtex.panel",
+          "name": "LingTeX Panel",
+          "type": "webview",
+          "icon": "resources/lingteX-icon-sidebar.svg"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "lingtex.convertExcelToTabularx",
@@ -87,6 +114,20 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        { "command": "lingtex.convertExcelToTabularx", "when": "false" },
+        { "command": "lingtex.convertXLingPaperXmlToExcel", "when": "false" },
+        { "command": "lingtex.tsvToTabularx", "when": "false" },
+        { "command": "lingtex.acceptTsvToTabularx", "when": "false" },
+        { "command": "lingtex.cancelTsvToTabularx", "when": "false" },
+        { "command": "lingtex.tsvToInterlinear", "when": "false" },
+        { "command": "lingtex.acceptTsvToInterlinear", "when": "false" },
+        { "command": "lingtex.cancelTsvToInterlinear", "when": "false" },
+        { "command": "lingtex.tabularxToExcel", "when": "false" },
+        { "command": "lingtex.findMissingGlosses", "when": "false" },
+        { "command": "lingtex.sanitizeIntro", "when": "false" },
+        { "command": "lingtex.splitSections", "when": "false" }
+      ],
       "editor/title": [
         {
           "command": "lingtex.acceptTsvToTabularx",
@@ -120,7 +161,12 @@
         },
         "lingtex.excel.outputLocation": {
           "type": "string",
-          "enum": ["downloads", "documents", "workspace", "prompt"],
+          "enum": [
+            "downloads",
+            "documents",
+            "workspace",
+            "prompt"
+          ],
           "default": "downloads",
           "description": "Where to save Excel files: Downloads, Documents, Workspace (next to source), or Prompt to choose each time."
         },
@@ -131,7 +177,11 @@
         },
         "lingtex.interlinear.outputMode": {
           "type": "string",
-          "enum": ["insert", "clipboard", "prompt"],
+          "enum": [
+            "insert",
+            "clipboard",
+            "prompt"
+          ],
           "default": "insert",
           "description": "Where to send generated interlinear: insert at cursor, copy to clipboard, or prompt each time."
         }
@@ -149,9 +199,9 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
-    "typescript": "^5.6.3",
-    "esbuild": "^0.23.0"
+    "@types/vscode": "1.85.0",
+    "esbuild": "^0.27.2",
+    "typescript": "^5.6.3"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.0",
