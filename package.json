@@ -1,0 +1,153 @@
+{
+  "name": "lingtex",
+  "displayName": "LingTeX",
+  "description": "Linguistics authoring helpers for LaTeX (works with LaTeX Workshop & LaTeX Utilities).",
+  "version": "0.0.1",
+  "publisher": "rulingAnts",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:lingtex.convertExcelToTabularx",
+    "onCommand:lingtex.convertXLingPaperXmlToExcel",
+    "onCommand:lingtex.tsvToTabularx",
+    "onCommand:lingtex.acceptTsvToTabularx",
+    "onCommand:lingtex.cancelTsvToTabularx",
+    "onCommand:lingtex.tsvToInterlinear",
+    "onCommand:lingtex.acceptTsvToInterlinear",
+    "onCommand:lingtex.cancelTsvToInterlinear",
+    "onCommand:lingtex.tabularxToExcel",
+    "onCommand:lingtex.findMissingGlosses",
+    "onCommand:lingtex.sanitizeIntro",
+    "onCommand:lingtex.splitSections"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "lingtex.convertExcelToTabularx",
+        "title": "LingTeX: Convert Excel → LaTeX tabularx"
+      },
+      {
+        "command": "lingtex.convertXLingPaperXmlToExcel",
+        "title": "LingTeX: Convert XLingPaper XML → Excel"
+      },
+      {
+        "command": "lingtex.tsvToTabularx",
+        "title": "LingTeX: TSV → LaTeX tabularx"
+      },
+      {
+        "command": "lingtex.acceptTsvToTabularx",
+        "title": "Generate Tabularx",
+        "icon": "$(check)"
+      },
+      {
+        "command": "lingtex.cancelTsvToTabularx",
+        "title": "Cancel",
+        "icon": "$(close)"
+      },
+      {
+        "command": "lingtex.tsvToInterlinear",
+        "title": "LingTeX: TSV → Interlinear (gb4e)"
+      },
+      {
+        "command": "lingtex.acceptTsvToInterlinear",
+        "title": "Generate Interlinear",
+        "icon": "$(check)"
+      },
+      {
+        "command": "lingtex.cancelTsvToInterlinear",
+        "title": "Cancel",
+        "icon": "$(close)"
+      },
+      {
+        "command": "lingtex.tabularxToExcel",
+        "title": "LingTeX: LaTeX tabularx → Excel"
+      },
+      {
+        "command": "lingtex.findMissingGlosses",
+        "title": "LingTeX: Find Missing Glosses"
+      },
+      {
+        "command": "lingtex.sanitizeIntro",
+        "title": "LingTeX: Sanitize Intro Sections"
+      },
+      {
+        "command": "lingtex.splitSections",
+        "title": "LingTeX: Split Sections"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "lingtex.acceptTsvToTabularx",
+          "group": "navigation",
+          "when": "lingtex.tsvTabularxTemplateOpen"
+        },
+        {
+          "command": "lingtex.cancelTsvToTabularx",
+          "group": "navigation",
+          "when": "lingtex.tsvTabularxTemplateOpen"
+        },
+        {
+          "command": "lingtex.acceptTsvToInterlinear",
+          "group": "navigation",
+          "when": "lingtex.tsvInterlinearTemplateOpen"
+        },
+        {
+          "command": "lingtex.cancelTsvToInterlinear",
+          "group": "navigation",
+          "when": "lingtex.tsvInterlinearTemplateOpen"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LingTeX",
+      "properties": {
+        "lingtex.tables.outputDir": {
+          "type": "string",
+          "default": "${workspaceFolder}/misc/tables",
+          "description": "Default output directory for generated LaTeX tables."
+        },
+        "lingtex.excel.outputLocation": {
+          "type": "string",
+          "enum": ["downloads", "documents", "workspace", "prompt"],
+          "default": "downloads",
+          "description": "Where to save Excel files: Downloads, Documents, Workspace (next to source), or Prompt to choose each time."
+        },
+        "lingtex.excel.filenameTemplate": {
+          "type": "string",
+          "default": "${basename}-${date}-${time}",
+          "description": "Template for Excel filenames. Supports ${basename}, ${date} (YYYYMMDD), ${time} (HHmmss). Extension is added automatically."
+        },
+        "lingtex.interlinear.outputMode": {
+          "type": "string",
+          "enum": ["insert", "clipboard", "prompt"],
+          "default": "insert",
+          "description": "Where to send generated interlinear: insert at cursor, copy to clipboard, or prompt each time."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "lint": "echo 'No lint configured'",
+    "test": "echo 'No tests yet'"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.0",
+    "exceljs": "^4.4.0"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "date": "2025-12-18",
+    "os": "macOS",
+    "repo": { "owner": "rulingAnts", "name": "fayu-grammar", "branch": "main" }
+  },
+  "lingtex": {
+    "extension": {
+      "id": "rulingAnts.lingtex",
+      "displayName": "LingTeX",
+      "version": "0.0.1",
+      "paths": {
+        "root": "LingTeX/",
+        "manifest": "LingTeX/package.json",
+        "entry": "LingTeX/src/extension.ts",
+        "tsconfig": "LingTeX/tsconfig.json",
+        "launch": "LingTeX/.vscode/launch.json",
+        "docs": ["LingTeX/README.md", "LingTeX/CHANGELOG.md"]
+      },
+      "engines": { "vscode": "^1.85.0" },
+      "commands": [
+        "lingtex.convertExcelToTabularx",
+        "lingtex.convertXLingPaperXmlToExcel",
+        "lingtex.tsvToTabularx",
+        "lingtex.tsvToInterlinear",
+        "lingtex.tabularxToExcel",
+        "lingtex.findMissingGlosses",
+        "lingtex.sanitizeIntro",
+        "lingtex.splitSections"
+      ],
+      "settings": {
+        "lingtex.tables.outputDir": {
+          "type": "string",
+          "default": "${workspaceFolder}/misc/tables"
+        }
+      }
+    },
+    "build": {
+      "scripts": { "build": "tsc -p .", "watch": "tsc -w -p .", "lint": "echo 'No lint'", "test": "echo 'No tests'" },
+      "tsconfig": { "target": "ES2020", "module": "commonjs", "outDir": "dist", "rootDir": "src", "strict": true, "esModuleInterop": true },
+      "debug": { "launchConfig": "LingTeX/.vscode/launch.json" }
+    },
+    "dependencies": {
+      "runtime": { "exceljs": "^4.4.0", "@xmldom/xmldom": "^0.9.0" },
+      "dev": { "typescript": "^5.6.3", "@types/node": "^20.11.0" }
+    }
+  },
+  "rootProject": {
+    "paths": {
+      "manifest": "package.json",
+      "tsconfig": "tsconfig.json",
+      "tasks": ".vscode/tasks.json",
+      "scriptsDir": "scripts/"
+    },
+    "scripts": [
+      { "file": "scripts/find_missing_glosses.ts", "purpose": "Scan .tex for uppercase gloss tokens outside macros; cross-check abbreviations." },
+      { "file": "scripts/sanitize_intro.ts", "purpose": "Escape/normalize intro text and emit LaTeX section files." },
+      { "file": "scripts/split_sections.ts", "purpose": "Split raw text into per-heading .tex chunks." },
+      { "file": "scripts/convert_excel_to_tabularx.ts", "purpose": ".xlsx to LaTeX tabularx with merges, styles, header detection." },
+      { "file": "scripts/convert_xlingpaper_xml_to_excel.ts", "purpose": "XLingPaper-like XML tables to Excel; sanitized input parsing." },
+      { "file": "scripts/tsv_to_tabularx.ts", "purpose": "TSV to LaTeX tabularx; editor-guided workflow supported." },
+      { "file": "scripts/tsv_to_interlinear.ts", "purpose": "TSV tiers to gb4e interlinear (gll variants) with translations." },
+      { "file": "scripts/tabularx_to_excel.ts", "purpose": "LaTeX tabularx back to Excel, preserving merges/styling." }
+    ],
+    "tasks": {
+      "path": ".vscode/tasks.json",
+      "labels": [
+        "TS: Find Missing Glosses (TypeScript)",
+        "TS: Sanitize Intro (TypeScript)",
+        "TS: Split Sections (TypeScript)",
+        "TS: Convert XLingPaper XML to Excel",
+        "TS: Convert Excel to XeLaTeX/tabularx (batch)",
+        "TS: Import Excel Sheet as tabularx (LaTeX) table",
+        "TS: TSV to tabularx (Editor)",
+        "TS: TSV to Interlinear (Editor)",
+        "TS: Tabularx to Excel"
+      ]
+    }
+  },
+  "decisions": [
+    "Use ESM for root TS scripts with 'type: module'; fix exceljs import via default import.",
+    "Replace vulnerable 'xmldom' with '@xmldom/xmldom'; sanitize XML by removing BOM and stray pre-root bytes.",
+    "Add ESM-safe __dirname via fileURLToPath(import.meta.url) in modules needing path resolution.",
+    "Keep extension build as commonjs for VS Code runtime compatibility."
+  ],
+  "nextSteps": [
+    { "task": "Port TSV → Interlinear", "details": "Move logic from scripts/tsv_to_interlinear.ts into extension command; add input pickers and output writing." },
+    { "task": "Port Excel → tabularx", "details": "Integrate convert_excel_to_tabularx.ts; add file picker and output dir setting; preserve merges/styles." },
+    { "task": "Port XLingPaper XML → Excel", "details": "Use @xmldom/xmldom with sanitation; write workbook to chosen folder or next to source." },
+    { "task": "Port tabularx → Excel", "details": "Parse LaTeX tables and export .xlsx; add pickers and progress UI." },
+    { "task": "Find Missing Glosses UI", "details": "Display results via output channel or diagnostics; add ignore list controls." },
+    { "task": "Sanitize Intro & Split Sections", "details": "Expose config for source/target dirs; add commands to run and report produced files." }
+  ],
+  "runInstructions": {
+    "extension": [
+      "Build in LingTeX/: npm run build",
+      "Debug with VS Code config 'Run Extension'",
+      "Trigger any 'LingTeX:' command to see stub messages"
+    ],
+    "rootTasks": [
+      "Use VS Code Tasks: run TS converters and utilities from the palette",
+      "Ensure sample data under sample/pa_exports for Excel/XML tasks"
+    ]
+  }
+}
