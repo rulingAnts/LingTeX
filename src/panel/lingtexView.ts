@@ -1,3 +1,4 @@
+/*
 import * as vscode from 'vscode';
 
 export class LingTeXViewProvider implements vscode.WebviewViewProvider {
@@ -324,3 +325,5 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                         return s.replace(/\\/g, '\\textbackslash{}').replace(/([#%&_{}])/g, '{\\$1}').replace(/\^/g, '{\\textasciicircum}').replace(/~/g, '{\\textasciitilde}');
                       }
                     }
+
+*/
