@@ -4,6 +4,10 @@
   "description": "Linguistics authoring helpers for LaTeX (works with LaTeX Workshop & LaTeX Utilities).",
   "version": "0.0.1",
   "publisher": "rulingAnts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulingAnts/LingTeX.git"
+  },
   "license": "AGPL-3.0-only",
   "engines": {
     "vscode": "^1.85.0"
