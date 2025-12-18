@@ -10,7 +10,7 @@ Follow these steps after updating and restarting VS Code to ensure the LingTeX e
 ```bash
 npm ci
 npm run bundle
-npx @vscode/vsce package
+npm run package   # uses npx @vscode/vsce package
 ```
 - If `npx @vscode/vsce` isn’t available, install once: `npm i -D @vscode/vsce` and re-run `npx @vscode/vsce package`.
 - This produces a `.vsix` file in the project root.

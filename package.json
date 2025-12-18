@@ -144,7 +144,8 @@
     "watch": "tsc -w -p .",
     "lint": "echo 'No lint configured'",
     "test": "echo 'No tests yet'",
-    "bundle": "esbuild src/extension.ts --bundle --external:vscode --platform=node --format=cjs --sourcemap --minify --outfile=dist/extension.js --target=node18"
+    "bundle": "esbuild src/extension.ts --bundle --external:vscode --platform=node --format=cjs --sourcemap --minify --outfile=dist/extension.js --target=node18",
+    "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
