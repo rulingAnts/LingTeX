@@ -1,0 +1,16 @@
+\begin{exe}
+\ex
+\end{exe}
+
+.vscode/
+.vscode-test/
+.github/
+.git/
+docs/
+test/
+src/
+**/*.ts
+**/*.map
+node_modules/**
+tsconfig.json
+AI-Handoff.json
