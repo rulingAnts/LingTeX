@@ -30,14 +30,54 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
       progress.report({ message: 'Parsing editor content…' });
       const parsed = parseEditorContent(content);
       const raw = parsed.tsv;
-      const { lines, headers } = parseTSV(raw);
-      const gb4e = toGb4e(lines, headers);
+      const examples = parseExamples(raw);
+      if (examples.length === 0) {
+        vscode.window.showErrorMessage('LingTeX: No examples found. Ensure tier lines like "Morphemes", "Lex. Gloss", "Word Gloss", and a "Free" line or a blank line to separate examples.');
+        return;
+      }
+
+      // Choose options depending on single vs multiple examples
+      let choice: string | undefined;
+      if (examples.length === 1) {
+        const picks = [
+          { label: 'Snippet (single interlinear example)', value: 'single-snippet' },
+          { label: 'New list example (this as first item)', value: 'single-list-starter' },
+          { label: 'Add to existing list (one item)', value: 'single-list-item' },
+        ];
+        const sel = await vscode.window.showQuickPick(picks, { placeHolder: 'Select interlinear output for single example' });
+        choice = sel?.value;
+        if (!choice) return;
+      } else {
+        const picks = [
+          { label: 'New list example (sub-examples a, b, c, …)', value: 'multi-new-list' },
+          { label: 'Add to existing list (items only)', value: 'multi-list-items' },
+          { label: 'Interlinear text (sequence of numbered examples)', value: 'multi-text' },
+        ];
+        const sel = await vscode.window.showQuickPick(picks, { placeHolder: `Detected ${examples.length} examples. Choose output.` });
+        choice = sel?.value;
+        if (!choice) return;
+      }
+
+      // Render one output according to the selection
+      let output = '';
+      if (examples.length === 1) {
+        const ex = examples[0];
+        if (choice === 'single-snippet') output = asSingleExample(ex);
+        else if (choice === 'single-list-starter') output = asListStarter(ex);
+        else if (choice === 'single-list-item') output = asListItem(ex);
+        else return;
+      } else {
+        if (choice === 'multi-new-list') output = asListOfExamples(examples);
+        else if (choice === 'multi-list-items') output = asItemsForExistingList(examples);
+        else if (choice === 'multi-text') output = asInterlinearText(examples);
+        else return;
+      }
+
       const cfg = vscode.workspace.getConfiguration('lingtex');
       const mode = cfg.get<string>('interlinear.outputMode', 'insert');
       progress.report({ message: mode === 'clipboard' ? 'Copying to clipboard…' : 'Inserting at cursor…' });
-      await insertIntoTargetOrClipboard(gb4e + '\n', mode as any);
+      await insertIntoTargetOrClipboard(output + '\n', mode as any);
       await vscode.commands.executeCommand('setContext', 'lingtex.tsvInterlinearTemplateOpen', false);
-      // Optionally close the template editor
       await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
     });
   });
@@ -51,11 +91,44 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
     if (!content.includes('# TSV → Interlinear input') || !content.includes('\n---\n')) return;
     const parsed = parseEditorContent(content);
     const raw = parsed.tsv;
-    const { lines, headers } = parseTSV(raw);
-    const gb4e = toGb4e(lines, headers);
+    const exs = parseExamples(raw);
+    if (exs.length === 0) { vscode.window.showErrorMessage('LingTeX: No examples found in pasted TSV.'); return; }
+    let choice: string | undefined;
+    if (exs.length === 1) {
+      const picks = [
+        { label: 'Snippet (single interlinear example)', value: 'single-snippet' },
+        { label: 'New list example (this as first item)', value: 'single-list-starter' },
+        { label: 'Add to existing list (one item)', value: 'single-list-item' },
+      ];
+      const sel = await vscode.window.showQuickPick(picks, { placeHolder: 'Select interlinear output for single example' });
+      choice = sel?.value;
+      if (!choice) return;
+    } else {
+      const picks = [
+        { label: 'New list example (sub-examples a, b, c, …)', value: 'multi-new-list' },
+        { label: 'Add to existing list (items only)', value: 'multi-list-items' },
+        { label: 'Interlinear text (sequence of numbered examples)', value: 'multi-text' },
+      ];
+      const sel = await vscode.window.showQuickPick(picks, { placeHolder: `Detected ${exs.length} examples. Choose output.` });
+      choice = sel?.value;
+      if (!choice) return;
+    }
+    let out = '';
+    if (exs.length === 1) {
+      const ex = exs[0];
+      if (choice === 'single-snippet') out = asSingleExample(ex);
+      else if (choice === 'single-list-starter') out = asListStarter(ex);
+      else if (choice === 'single-list-item') out = asListItem(ex);
+      else return;
+    } else {
+      if (choice === 'multi-new-list') out = asListOfExamples(exs);
+      else if (choice === 'multi-list-items') out = asItemsForExistingList(exs);
+      else if (choice === 'multi-text') out = asInterlinearText(exs);
+      else return;
+    }
     const cfg = vscode.workspace.getConfiguration('lingtex');
     const mode = cfg.get<string>('interlinear.outputMode', 'insert');
-    await insertIntoTargetOrClipboard(gb4e + '\n', mode as any);
+    await insertIntoTargetOrClipboard(out + '\n', mode as any);
     await vscode.commands.executeCommand('setContext', 'lingtex.tsvInterlinearTemplateOpen', false);
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
   });
@@ -75,41 +148,226 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
   context.subscriptions.push(closeSub);
 }
 
-function parseTSV(raw: string): { lines: string[][]; headers: string[] } {
-  const rows = raw.split(/\r?\n/).filter(r => r.trim().length > 0);
-  const headers = rows[0].split('\t').map(h => h.trim().toLowerCase());
-  const lines = rows.slice(1).map(r => r.split('\t').map(c => c.trim()));
-  return { lines, headers };
+// =====================
+// Parsing and rendering
+// =====================
+
+type TierName = 'Word' | 'Morphemes' | 'Lex. Gloss' | 'Word Gloss' | string;
+
+type Example = {
+  number?: string;
+  tiers: Record<TierName, string[]>;
+  tierOrder: TierName[];
+  freeTranslations: { lang?: string; text: string }[];
+};
+
+function stripInvisible(s: string): string {
+  return s.replace(/[\u200E\u200F\u202A-\u202E]/g, '');
 }
 
-function toGb4e(lines: string[][], headers: string[]): string {
-  // Try to map common header names to tiers.
-  const idx = (names: string[]) => {
-    for (const n of names) {
-      const i = headers.indexOf(n);
-      if (i !== -1) return i;
-    }
-    return -1;
+function tokenizeTSVLine(line: string): string[] {
+  const normalizeCell = (s: string): string => {
+    const cleaned = stripInvisible(s).replace(/\u00A0/g, ' ').trim();
+    if (!cleaned) return '~';
+    return cleaned.replace(/ /g, '~');
   };
-  const iForm = idx(['form', 'line1', 'orth', 'tok']);
-  const iMorph = idx(['morph', 'seg', 'line2']);
-  const iGloss = idx(['gloss', 'line3']);
-  const iTrans = idx(['translation', 'trans']);
+  return line.split('\t').map(normalizeCell);
+}
 
-  const joinCol = (i: number) => (i >= 0 ? lines.map(r => r[i]).join(' ') : '');
-  const L1 = joinCol(iForm);
-  const L2 = joinCol(iMorph);
-  const L3 = joinCol(iGloss);
-  const T = iTrans >= 0 ? lines.map(r => r[iTrans]).join(' ') : '';
+function parseExamples(tsvRaw: string): Example[] {
+  const lines = tsvRaw.split(/\r?\n/).map((l) => l.replace(/\u00A0/g, ' ').trimEnd());
+  const filtered = lines.filter((l) => l.trim() !== '' && !l.trim().startsWith('#'));
+  const examples: Example[] = [];
+  let current: Example | null = null;
 
-  const body: string[] = [];
-  if (L1 || L2 || L3) {
-    body.push('  \\gll ' + [L1, L2, L3].filter(s => s && s.length > 0).join(' \\ '));
+  function pushCurrent() {
+    if (current && Object.keys(current.tiers).length > 0) examples.push(current);
+    current = null;
   }
-  if (T) {
-    body.push('  \\trans ' + latexEscape(T));
+
+  for (const raw of filtered) {
+    const line = stripInvisible(raw).trim();
+    if (!line) { pushCurrent(); continue; }
+    const cols = tokenizeTSVLine(line);
+    if (cols.length === 0) continue;
+
+    const first = (cols[0] || '').toLowerCase();
+    if (first.startsWith('free')) {
+      if (!current) current = { tiers: {}, tierOrder: [], freeTranslations: [] };
+      const lang = cols[0].slice(4).replace(/~/g, ' ').trim() || undefined;
+      // Preserve spaces in free translation: prefer text after first tab; else after label/separators.
+      let text = '';
+      const tabPos = raw.indexOf('\t');
+      if (tabPos >= 0) {
+        text = stripInvisible(raw.slice(tabPos + 1)).replace(/\u00A0/g, ' ').trim();
+      } else {
+        text = stripInvisible(raw.replace(/^\s*free\b.*?[:\-\s]+/i, '')).replace(/\u00A0/g, ' ').trim();
+      }
+      current.freeTranslations.push({ lang, text });
+      pushCurrent();
+      continue;
+    }
+
+    const startsWithNumber = /^\d+$/.test(cols[0]);
+    let tierName: TierName;
+    let values: string[];
+    if (startsWithNumber) {
+      tierName = (cols[1] || 'Morphemes') as TierName;
+      values = cols.slice(2);
+      if (!current) current = { number: cols[0], tiers: {}, tierOrder: [], freeTranslations: [] };
+    } else {
+      tierName = (cols[0] || 'Morphemes') as TierName;
+      values = cols.slice(1);
+      if (!current) current = { tiers: {}, tierOrder: [], freeTranslations: [] };
+    }
+
+    current.tiers[tierName] = values;
+    if (!current.tierOrder.includes(tierName)) current.tierOrder.push(tierName);
   }
-  return ['\\begin{exe}', '\\ex', ...body, '\\end{exe}', ''].join('\n');
+  pushCurrent();
+  return examples;
+}
+
+function getMaxAligned(): number {
+  const cfg = vscode.workspace.getConfiguration('lingtex');
+  const n = cfg.get<number>('interlinear.maxLines', 5) ?? 5;
+  return Math.max(2, n);
+}
+
+function gatherAlignedLines(ex: Example): string[] {
+  const normalize = (name: TierName) => (name || '').toLowerCase();
+  const canonicalOrder = ['word', 'morphemes', 'lex. gloss', 'word gloss', 'word cat.', 'pos'];
+  const orderedTiers: TierName[] = [];
+  const seen = new Set<string>();
+
+  for (const c of canonicalOrder) {
+    const match = ex.tierOrder.find((t) => normalize(t) === c);
+    if (match && !seen.has(normalize(match))) {
+      orderedTiers.push(match);
+      seen.add(normalize(match));
+    }
+  }
+  for (const t of ex.tierOrder) {
+    const lower = normalize(t);
+    if (lower.startsWith('free')) continue;
+    if (seen.has(lower)) continue;
+    orderedTiers.push(t);
+    seen.add(lower);
+  }
+
+  const lines: string[] = [];
+  for (const t of orderedTiers) {
+    const toks = ex.tiers[t] || [];
+    const nonEmpty = toks.some((v) => (v ?? '').toString().trim().length > 0);
+    if (!nonEmpty) continue;
+    // Join tab-separated tokens with actual spaces (gb4e item separators).
+    // Preserve literal spaces inside tokens as '~' (done during tokenization).
+    lines.push(toks.join(' '));
+  }
+  return lines;
+}
+
+function renderGLLLines(ex: Example): { gCmd: string; lines: string[] } {
+  const lines = gatherAlignedLines(ex);
+  const n = lines.length;
+  const maxAligned = getMaxAligned();
+  const count = Math.max(2, Math.min(n, maxAligned));
+  const gCmd = 'g' + 'l'.repeat(count);
+  return { gCmd, lines: lines.slice(0, count) };
+}
+
+function renderGlt(ex: Example): string | null {
+  if (!ex.freeTranslations.length) return null;
+  const joined = ex.freeTranslations
+    .map((f) => f.text)
+    .filter(Boolean)
+    .join(' ');
+  return joined || null;
+}
+
+function latexEscape(s: string): string {
+  return s.replace(/([%$#&_{}])/g, '\\$1').replace(/\u00A0/g, ' ');
+}
+
+function renderExampleN(ex: Example): string {
+  const { gCmd, lines } = renderGLLLines(ex);
+  const glt = renderGlt(ex);
+  if (!lines.length) {
+    const transOnly = glt ? `\\glt ${latexEscape(glt)}` : '';
+    return transOnly || '% (no aligned interlinear lines)';
+  }
+  const head = `\\${gCmd} ${latexEscape(lines[0])} \\\\`;
+  const rest = lines.slice(1).map((ln) => `${latexEscape(ln)} \\\\`).join('\n');
+  const gllBlock = [head, rest].filter(Boolean).join('\n');
+  const trans = glt ? `\\glt ${latexEscape(glt)}` : '';
+  return [gllBlock.trimEnd(), trans].filter(Boolean).join('\n');
+}
+
+function asSingleExample(ex: Example): string {
+  return [
+    '\n% Single example',
+    '\n\\begin{exe}',
+    '\\ex % \\label{ex:KEY}',
+    renderExampleN(ex),
+    '\\end{exe}\n'
+  ].join('\n');
+}
+
+function asListStarter(first: Example): string {
+  return [
+    '\n% Start a list example with this as (a).',
+    '\n\\begin{exe}',
+    '\\ex % \\label{ex:KEY}',
+    '\\begin{xlist}',
+    '\\ex % \\label{ex:KEY-a}',
+    renderExampleN(first),
+    '% Add more items as needed...',
+    '\\end{xlist}',
+    '\\end{exe}\n'
+  ].join('\n');
+}
+
+function asListItem(ex: Example): string {
+  return [
+    '\n% List item to add inside an existing xlist',
+    '\\ex % \\label{ex:KEY-?}',
+    renderExampleN(ex),
+    ''
+  ].join('\n');
+}
+
+function asItemsForExistingList(exs: Example[]): string {
+  return exs
+    .map((e, i) => ['\\ex % \\label{ex:KEY-' + String(i + 1) + '}', renderExampleN(e)].join('\n'))
+    .join('\n');
+}
+
+function asListOfExamples(exs: Example[]): string {
+  const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+  const items = exs
+    .map((e, i) => ['\\ex % \\label{ex:KEY-' + (letters[i] || String(i + 1)) + '}', renderExampleN(e)].join('\n'))
+    .join('\n');
+  return [
+    '\n% List example (numbered subexamples a, b, c, ...)',
+    '\n\\begin{exe}',
+    '\\ex % \\label{ex:KEY}',
+    '\\begin{xlist}',
+    items,
+    '\\end{xlist}',
+    '\\end{exe}\n'
+  ].join('\n');
+}
+
+function asInterlinearText(exs: Example[]): string {
+  const items = exs
+    .map((e, i) => ['\\ex % \\label{ex:KEY-' + String(i + 1) + '}', renderExampleN(e)].join('\n'))
+    .join('\n');
+  return [
+    '\n% Interlinear text (sequence of numbered examples)',
+    '\n\\begin{exe}',
+    items,
+    '\\end{exe}\n'
+  ].join('\n');
 }
 
 function expandWorkspaceFolder(p: string): string {
@@ -118,13 +376,7 @@ function expandWorkspaceFolder(p: string): string {
   return p.replace('${workspaceFolder}', ws.uri.fsPath);
 }
 
-function latexEscape(s: string): string {
-  return s
-    .replace(/\\/g, '\\textbackslash{}')
-    .replace(/([#%&_{}])/g, '{\\$1}')
-    .replace(/\^/g, '{\\textasciicircum}')
-    .replace(/~/g, '{\\textasciitilde}');
-}
+// Removed duplicate latexEscape that was previously used for template metadata parsing.
 
 function buildEditorTemplate(defaults: { label?: string | null; outputMode?: string; targetInfo?: { file: string; line: number } | null }): string {
   const label = defaults.label ?? 'interlinear-example';
@@ -136,13 +388,16 @@ function buildEditorTemplate(defaults: { label?: string | null; outputMode?: str
         : '# Output destination: insert at current cursor (no target captured yet)');
   return [
     '# TSV → Interlinear input',
-    '# Expected header row includes columns like form/morph/gloss/translation.',
-    '# Paste TSV after the --- line. First row is headers, subsequent rows are data.',
+    '# Paste tiered TSV after the --- line (no header row). Lines starting with # are ignored.',
+    '# Example tiers: (Number)\tMorphemes\t... or Word\t..., Lex. Gloss\t..., Word Gloss\t..., Free\t... ',
+    '# Leave a blank line between examples, or include a Free line to terminate an example.',
     infoLine,
     `Label: ${label}`,
     '---',
-    'form\tmorph\tgloss\ttranslation',
-    'pu\tpu\tCL\tA classifier example',
+    'Morphemes\tpa sɛn\tɛɾi\ta\t=bo\tɾi\tobwi\tnaʉ\t-ɥo',
+    'Lex. Gloss\t***\tDET\t1SG\tERG\t2SG\tword\tsay\tINCMP',
+    'Word Gloss\tMr. Seth\tthis\tI\t\tyou\tinform\t\t',
+    'Free Eng\tMr. Seth, I\'m telling you this:',
     '',
   ].join('\n');
 }

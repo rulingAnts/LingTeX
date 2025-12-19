@@ -180,18 +180,6 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                             <style>${style}</style>
                           </head>
                           <body>
-                            <div class="group">
-                              <h2>Quick Actions</h2>
-                              <div class="cmds">
-                                <button class="btn" data-cmd="lingtex.tsvToTabularx">TSV → LaTeX tabularx (open template)</button>
-                                <button class="btn" data-cmd="lingtex.convertExcelToTabularx">Excel → LaTeX tabularx</button>
-                                <button class="btn" data-cmd="lingtex.tabularxToExcel">LaTeX tabularx → Excel</button>
-                                <button class="btn" data-cmd="lingtex.convertXLingPaperXmlToExcel">XLingPaper XML → Excel</button>
-                                <button class="btn" data-cmd="lingtex.findMissingGlosses">Find Missing Glosses</button>
-                                <button class="btn" data-cmd="lingtex.sanitizeIntro">Sanitize Intro Sections</button>
-                                <button class="btn" data-cmd="lingtex.splitSections">Split Sections</button>
-                              </div>
-                            </div>
 
                             <details open>
                               <summary><strong>TSV → Interlinear</strong></summary>
@@ -229,6 +217,13 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                               <div class="row"><button class="btn" data-cmd="lingtex.convertExcelToTabularx">Excel → LaTeX tabularx</button></div>
                               <div class="row"><button class="btn" data-cmd="lingtex.tabularxToExcel">LaTeX tabularx → Excel</button></div>
                               <div class="row"><button class="btn" data-cmd="lingtex.convertXLingPaperXmlToExcel">XLingPaper XML → Excel</button></div>
+                            </details>
+
+                            <details>
+                              <summary><strong>Document Tools</strong></summary>
+                              <div class="row"><button class="btn" data-cmd="lingtex.findMissingGlosses">Find Missing Glosses</button></div>
+                              <div class="row"><button class="btn" data-cmd="lingtex.sanitizeIntro">Sanitize Intro Sections</button></div>
+                              <div class="row"><button class="btn" data-cmd="lingtex.splitSections">Split Sections</button></div>
                             </details>
 
                             <details>
