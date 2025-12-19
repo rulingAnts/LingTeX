@@ -103,14 +103,27 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
   private getHtml(webview: vscode.Webview, state: any): string {
     const style = `
-      :root { color-scheme: light dark; }
-      body { font-family: var(--vscode-font-family); padding: 8px; }
+      html, body { height: 100%; }
+      body {
+        font-family: var(--vscode-font-family);
+        padding: 8px;
+        height: 100vh;
+        overflow-y: auto;
+        background: var(--vscode-sideBar-background);
+        color: var(--vscode-foreground);
+      }
       h2 { font-size: 14px; margin: 12px 0 6px; }
       button { margin: 2px 0; }
       .group { border-bottom: 1px solid var(--vscode-widget-border); padding-bottom: 8px; margin-bottom: 8px; }
       .row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
-      input[type="text"], select { width: 100%; }
-      details { margin: 4px 0; }
+      input[type="text"], select, textarea { width: 100%; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); }
+      details { margin: 8px 0; border: 1px solid var(--vscode-widget-border); border-radius: 4px; }
+      details > summary { cursor: pointer; padding: 6px 8px; background: var(--vscode-titleBar-activeBackground); color: var(--vscode-titleBar-activeForeground); }
+      details[open] > summary { font-weight: 600; }
+      details > div { padding: 8px; }
+      details > summary { cursor: pointer; }
+      /* Ensure summary remains visible and clickable across themes */
+      details[open] > summary { font-weight: 600; }
       summary { cursor: pointer; }
       .btn { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 6px 8px; border-radius: 4px; }
       .btn:hover { background: var(--vscode-button-hoverBackground); }
