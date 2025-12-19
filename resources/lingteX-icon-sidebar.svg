@@ -1,6 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
-  <rect width="96" height="96" rx="12" fill="#3c3c3c"/>
-  <g font-family="Times New Roman, Georgia, serif" font-weight="700" fill="#ffffff">
-    <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-size="28">LingTeX</text>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 24 24"
+   version="1.1"
+   id="svg3"
+   sodipodi:docname="lingteX-icon-sidebar.svg"
+   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview3"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="7.2809259"
+     inkscape:cx="11.94903"
+     inkscape:cy="16.893456"
+     inkscape:window-width="1152"
+     inkscape:window-height="753"
+     inkscape:window-x="205"
+     inkscape:window-y="31"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg3" />
+  <!-- Transparent background - VS Code will handle theming -->
+  <!-- Define the Charis SIL font -->
+  <defs
+     id="defs1">
+    <style
+       id="style1">
+      @import url('https://fonts.cdnfonts.com/css/charis-sil');
+      .ipa-compact {
+        font-family: 'Charis SIL', 'Doulos SIL', 'Gentium', serif;
+        font-weight: bold;
+      }
+    </style>
+  </defs>
+  <!-- Compact logo with brackets -->
+  <g
+     id="g1"
+     transform="translate(-0.41203551)">
+    <path
+       d="M 2.0425404,21.167691 V 3.42324 H 6.1658173 V 3.8540301 H 5.7042565 q -0.676956,0 -0.9128648,0.1435967 -0.225652,0.1333398 -0.3487349,0.4102764 -0.112826,0.2666796 -0.112826,1.3026272 V 18.952198 q 0,0.984664 0.041028,1.12826 0.092312,0.369249 0.338478,0.543616 0.2564227,0.174368 0.9949201,0.174368 h 0.4615608 v 0.369249 z"
+       id="text1"
+       style="font-weight:bold;font-size:16px;font-family:'Charis SIL', 'Doulos SIL', Gentium, serif;fill:currentColor;fill-opacity:1;stroke-width:1.31288"
+       aria-label="[" />
+    <path
+       d="m 10.834618,10.100488 v 5.13871 q 0,1.025691 0.184625,1.333398 0.184624,0.307707 0.759011,0.379505 v 0.379506 H 6.9267369 v -0.379506 q 0.6461851,-0.06153 0.8410664,-0.348735 0.1948812,-0.29745 0.1948812,-1.364168 V 9.8235505 q 0,-1.0256908 -0.1743674,-1.3231405 Q 7.6242066,8.202959 6.9267369,8.1209038 V 7.7413989 H 10.834618 V 8.982484 q 1.333398,-1.5282786 2.871935,-1.5282786 0.86158,0 1.435967,0.4307902 0.584644,0.4307901 0.841066,1.0872322 0.256423,0.6564421 0.256423,2.5334552 v 6.154145 q 0,1.415453 -0.235909,2.246262 -0.235908,0.841067 -1.056461,1.39494 -0.820553,0.56413 -2.041125,0.56413 -1.251343,0 -1.907785,-0.502589 -0.646185,-0.492331 -0.646185,-1.261599 0,-0.441048 0.307708,-0.779525 0.307707,-0.328221 0.738497,-0.328221 0.841066,0 0.841066,0.902608 0,0.123083 -0.01024,0.307707 -0.02052,0.194881 -0.02052,0.29745 0,0.707727 0.584645,0.707727 0.369249,0 0.471818,-0.287193 0.102575,-0.276937 0.102575,-1.476995 v -8.472206 q 0,-1.3333979 -0.205138,-1.7334166 -0.194882,-0.4000201 -0.687213,-0.4000201 -0.912864,0 -1.641106,1.2616007 z"
+       id="text2"
+       style="font-weight:bold;font-size:16px;font-family:'Charis SIL', 'Doulos SIL', Gentium, serif;text-anchor:middle;fill:currentColor;fill-opacity:1;stroke-width:1.31288"
+       aria-label="ŋ" />
+    <path
+       d="m 22.651997,3.42324 v 17.744451 h -4.123275 v -0.389763 h 0.46156 q 0.676956,0 0.902608,-0.13334 0.235908,-0.13334 0.348735,-0.410277 0.123082,-0.276936 0.123082,-1.302626 V 5.6797597 q 0,-0.9846631 -0.04103,-1.1282598 Q 20.231371,4.1925081 19.974945,4.0181407 19.728779,3.8335163 18.990282,3.8335163 h -0.46156 V 3.42324 Z"
+       id="text3"
+       style="font-weight:bold;font-size:16px;font-family:'Charis SIL', 'Doulos SIL', Gentium, serif;text-anchor:end;fill:currentColor;fill-opacity:1;stroke-width:1.31288"
+       aria-label="]" />
   </g>
 </svg>

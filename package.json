@@ -26,7 +26,7 @@
         {
           "id": "lingtex",
           "title": "LingTeX",
-          "icon": "resources/lingtex-icon.svg"
+          "icon": "resources/lingteX-icon-sidebar.svg"
         }
       ]
     },
@@ -42,7 +42,7 @@
           "id": "lingtex.panel",
           "name": "LingTeX Panel",
           "type": "webview",
-          "icon": "resources/lingteX-icon-sidebar.svg"
+          "icon": "resources/lingtex-icon.svg"
         }
       ]
     },
@@ -145,6 +145,11 @@
           "type": "string",
           "default": "${workspaceFolder}/misc/tables",
           "description": "Default output directory for generated LaTeX tables."
+        },
+        "lingtex.figure.outputDir": {
+          "type": "string",
+          "default": "${workspaceFolder}/misc/figures",
+          "description": "Default output directory for imported figure images saved into the workspace."
         },
         "lingtex.excel.outputLocation": {
           "type": "string",
