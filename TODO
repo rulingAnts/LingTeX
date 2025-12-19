@@ -1,0 +1,13 @@
+# ToDo+ — Publish to VS Code Marketplace
+
+- [ ] Create VS Code Marketplace publisher (rulingAnts)
+- [ ] Install vsce (`npm i -D @vscode/vsce` or use npx)
+- [ ] Generate Personal Access Token; set `VSCE_PAT` env var
+- [ ] Verify package.json fields: `publisher`, `name`, `version`, `engines.vscode`, `categories`, `icon`, `license`, `repository`, `readme`
+- [ ] Add README screenshots and short feature list
+- [ ] Add CHANGELOG entry for each release
+- [ ] Run `npx @vscode/vsce package` (sanity check)
+- [ ] Publish pre-release: `npx @vscode/vsce publish --pre-release`
+- [ ] Verify listing, install from Marketplace
+- [ ] Plan stable release: bump version, draft notes, `npx @vscode/vsce publish`
+- [ ] Optional: Add badges (Marketplace installs, version) to README
