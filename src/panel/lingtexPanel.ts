@@ -221,7 +221,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       .btn:hover { background: var(--vscode-button-hoverBackground); }
       .cmds { display: grid; grid-template-columns: 1fr; gap: 4px; }
       .help { color: var(--vscode-descriptionForeground); font-size: 12px; }
-      .logo { display:block; height: 96px; margin: 0 auto 12px; clip-path: inset(15% 0 15% 0); }
+      .logo { display:block; height: 95px; margin: 0 auto 6px; clip-path: inset(30% 0 25% 0); }
     `;
 
     return `
@@ -238,7 +238,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
         <img src="${iconUri}" alt="LingTeX" class="logo" />
 
-        <details open>
+        <details>
           <summary><strong>TSV → Interlinear</strong></summary>
           <div class="help" style="margin:4px 0 8px;">
             Paste TSV below, choose options, and click Generate. Place the text cursor where you want the LaTeX inserted (especially for adding an item to an existing list). If the code is inserted in the wrong place, your document may fail to compile.

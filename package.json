@@ -26,7 +26,8 @@
         {
           "id": "lingtex",
           "title": "LingTeX",
-          "icon": "resources/lingteX-icon-sidebar.svg"
+          "icon": "resources/lingteX-icon-sidebar.svg",
+          "when": "lingtex:relevant || config.lingtex.alwaysShowActivityBar"
         }
       ]
     },
@@ -42,7 +43,8 @@
           "id": "lingtex.panel",
           "name": "LingTeX Panel",
           "type": "webview",
-          "icon": "resources/lingtex-icon.svg"
+          "icon": "resources/lingtex-icon.svg",
+          "when": "lingtex:relevant || config.lingtex.alwaysShowActivityBar"
         }
       ]
     },
@@ -166,6 +168,11 @@
           "type": "string",
           "default": "${basename}-${date}-${time}",
           "description": "Template for Excel filenames. Supports ${basename}, ${date} (YYYYMMDD), ${time} (HHmmss). Extension is added automatically."
+        },
+        "lingtex.alwaysShowActivityBar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Always show the LingTeX Activity Bar icon, regardless of project contents."
         },
         "lingtex.interlinear.outputMode": {
           "type": "string",
