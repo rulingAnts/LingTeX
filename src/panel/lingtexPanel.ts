@@ -10,7 +10,13 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
     const state = {
       tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
       excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
-      excel_filenameTemplate: cfg.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}')
+      excel_filenameTemplate: cfg.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}'),
+      inter_beforeSkip: cfg.get<string>('interlinear.beforeSkip', 'smallskip'),
+      inter_afterSkip: cfg.get<string>('interlinear.afterSkip', 'medskip'),
+      inter_useOpenup: cfg.get<boolean>('interlinear.useOpenup', true),
+      inter_openupGlossAmount: cfg.get<string>('interlinear.openupGlossAmount', '1em'),
+      inter_openupBeforeTranslationAmount: cfg.get<string>('interlinear.openupBeforeTranslationAmount', '-0.5em'),
+      inter_openupAfterTranslationAmount: cfg.get<string>('interlinear.openupAfterTranslationAmount', '-0.5em')
     };
     webviewView.webview.html = this.getHtml(webviewView.webview, state);
 
@@ -18,6 +24,17 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       try {
         if (msg?.type === 'runCommand' && typeof msg.command === 'string') {
           await vscode.commands.executeCommand(msg.command);
+          return;
+        }
+        if (msg?.type === 'generateTabularx') {
+          const { tsv, caption, label, headerColumn } = msg as { tsv: string; caption?: string; label?: string; headerColumn?: boolean };
+          if (!tsv || typeof tsv !== 'string') { vscode.window.showErrorMessage('LingTeX: Please paste TSV input.'); return; }
+          const data = this.parseTSVForTabularx(tsv);
+          if (!data.length) { vscode.window.showErrorMessage('LingTeX: No rows parsed from TSV.'); return; }
+          const tex = this.renderTSVToTabularx(data, caption ?? null, (label && label.trim()) || 'tsv-table', !!headerColumn);
+          const docOut = await vscode.workspace.openTextDocument({ language: 'latex', content: tex });
+          await vscode.window.showTextDocument(docOut);
+          vscode.window.showInformationMessage('LingTeX: Generated tabularx in a new unsaved document.');
           return;
         }
         if (msg?.type === 'generateInterlinear') {
@@ -163,7 +180,27 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
         <details>
           <summary><strong>TSV → LaTeX tabularx</strong></summary>
-          <div class="row"><button class="btn" data-cmd="lingtex.tsvToTabularx">Open Template</button></div>
+          <div class="help" style="margin:4px 0 8px;">
+            Paste TSV below, set options, and click Generate. Output opens as a new unsaved LaTeX document.
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">Caption:</label>
+            <input type="text" id="tabx_caption" placeholder="My Table" />
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">Label:</label>
+            <input type="text" id="tabx_label" placeholder="my-table" />
+          </div>
+          <div class="row">
+            <input type="checkbox" id="tabx_headerCol" />
+            <label for="tabx_headerCol">Bold header column and gray background</label>
+          </div>
+          <div class="row" style="flex-direction:column; align-items:stretch;">
+            <textarea id="tabx_tsv" rows="10" style="width:100%; font-family: var(--vscode-editor-font-family, monospace);"></textarea>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnGenerateTabularx">Generate</button>
+          </div>
         </details>
 
         <details>
@@ -197,9 +234,43 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <input type="text" id="excel_filenameTemplate" value="${this.escapeAttr(state.excel_filenameTemplate)}" />
           </div>
           <div class="row">
+            <label style="min-width:130px;">Translation spacing (before):</label>
+            <select id="inter_beforeSkip">
+              ${['none','smallskip','medskip','bigskip'].map((v:string)=>`<option value="${v}" ${state.inter_beforeSkip===v?'selected':''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">Translation spacing (after):</label>
+            <select id="inter_afterSkip">
+              ${['none','smallskip','medskip','bigskip'].map((v:string)=>`<option value="${v}" ${state.inter_afterSkip===v?'selected':''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div class="row">
+            <input type="checkbox" id="inter_useOpenup" ${state.inter_useOpenup ? 'checked' : ''} />
+            <label for="inter_useOpenup">Use \\openup for gloss lines</label>
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">\\openup gloss amount:</label>
+            <input type="text" id="inter_openupGlossAmount" value="${this.escapeAttr(state.inter_openupGlossAmount)}" placeholder="e.g., 1em or 6pt" />
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">\\openup before translation:</label>
+            <input type="text" id="inter_openupBeforeTranslationAmount" value="${this.escapeAttr(state.inter_openupBeforeTranslationAmount)}" placeholder="e.g., -0.5em" />
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">\\openup after translation:</label>
+            <input type="text" id="inter_openupAfterTranslationAmount" value="${this.escapeAttr(state.inter_openupAfterTranslationAmount)}" placeholder="e.g., -0.5em" />
+          </div>
+          <div class="row">
             <button class="btn" data-save="tables_outputDir">Save Tables Dir</button>
             <button class="btn" data-save="excel_outputLocation">Save Excel Location</button>
             <button class="btn" data-save="excel_filenameTemplate">Save Excel Template</button>
+            <button class="btn" data-save="inter_beforeSkip">Save Before Spacing</button>
+            <button class="btn" data-save="inter_afterSkip">Save After Spacing</button>
+            <button class="btn" data-save="inter_useOpenup">Save openup</button>
+            <button class="btn" data-save="inter_openupGlossAmount">Save gloss openup</button>
+            <button class="btn" data-save="inter_openupBeforeTranslationAmount">Save before-translation openup</button>
+            <button class="btn" data-save="inter_openupAfterTranslationAmount">Save after-translation openup</button>
           </div>
         </details>
 
@@ -223,6 +294,13 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             const label = document.getElementById('labelInput').value || '';
             vscode.postMessage({ type: 'generateInterlinear', tsv, addLabel: wantLabel, label });
           });
+          document.getElementById('btnGenerateTabularx').addEventListener('click', () => {
+            const tsv = (document.getElementById('tabx_tsv').value || '').trim();
+            const caption = (document.getElementById('tabx_caption').value || '').trim();
+            const label = (document.getElementById('tabx_label').value || '').trim();
+            const headerColumn = !!(document.getElementById('tabx_headerCol').checked);
+            vscode.postMessage({ type: 'generateTabularx', tsv, caption, label, headerColumn });
+          });
           document.querySelectorAll('[data-save]').forEach(btn => {
             btn.addEventListener('click', () => {
               const key = btn.getAttribute('data-save');
@@ -232,6 +310,12 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               if (key === 'tables_outputDir') configKey = 'lingtex.tables.outputDir';
               if (key === 'excel_outputLocation') configKey = 'lingtex.excel.outputLocation';
               if (key === 'excel_filenameTemplate') configKey = 'lingtex.excel.filenameTemplate';
+              if (key === 'inter_beforeSkip') configKey = 'lingtex.interlinear.beforeSkip';
+              if (key === 'inter_afterSkip') configKey = 'lingtex.interlinear.afterSkip';
+              if (key === 'inter_useOpenup') configKey = 'lingtex.interlinear.useOpenup';
+              if (key === 'inter_openupGlossAmount') configKey = 'lingtex.interlinear.openupGlossAmount';
+              if (key === 'inter_openupBeforeTranslationAmount') configKey = 'lingtex.interlinear.openupBeforeTranslationAmount';
+              if (key === 'inter_openupAfterTranslationAmount') configKey = 'lingtex.interlinear.openupAfterTranslationAmount';
               vscode.postMessage({ type: 'updateSetting', key: configKey, value });
             });
           });
@@ -243,6 +327,79 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
   private escapeAttr(v: string): string {
     return (v ?? '').replace(/&/g,'&amp;').replace(/\"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ===== TSV -> tabularx helpers (panel-based generation) =====
+  private latexEscapeTable(s: string): string {
+    if (s == null) return '';
+    return s
+      .replace(/\\/g, '\\textbackslash{}')
+      .replace(/&/g, '\\&')
+      .replace(/%/g, '\\%')
+      .replace(/\$/g, '\\$')
+      .replace(/#/g, '\\#')
+      .replace(/_/g, '\\_')
+      .replace(/\{/g, '\\{')
+      .replace(/\}/g, '\\}')
+      .replace(/~/g, '\\textasciitilde{}')
+      .replace(/\^/g, '\\textasciicircum{}');
+  }
+  private makecellIfNeeded(text: string, align: 'l' | 'c' | 'r' = 'l'): string {
+    if (!text) return '';
+    if (text.includes('\n')) {
+      const parts = text.split('\n').map(p => this.latexEscapeTable(p.trim()));
+      return `\\makecell[${align}]{` + parts.join(' \\ ') + '}';
+    }
+    return this.latexEscapeTable(text);
+  }
+  private buildTabularxSpec(ncols: number): string {
+    return '|' + Array.from({ length: ncols }, () => 'X').join('|') + '|';
+  }
+  private sanitizeLabelTable(s: string): string {
+    return s.split('').map(ch => /[a-z0-9]/i.test(ch) ? ch.toLowerCase() : '-').join('').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  }
+  private parseTSVForTabularx(input: string): string[][] {
+    const rows = input.replace(/\r\n?/g, '\n').split('\n').filter(line => line.length > 0);
+    return rows.map(line => line.split('\t'));
+  }
+  private renderTSVToTabularx(data: string[][], caption: string | null, labelBase: string, headerColumn: boolean): string {
+    const LATEX_HEADER = '\\renewcommand{\\arraystretch}{1.2}\n' + '\\setlength{\\tabcolsep}{6pt}\n';
+    const HEADER_ROW_GRAY = '0.95';
+    const ncols = Math.max(0, ...data.map(r => r.length));
+    const lines: string[] = [];
+    lines.push('% Auto-generated by LingTeX');
+    lines.push(LATEX_HEADER.trim());
+    lines.push('\\begin{table}[htbp!]');
+    lines.push('\\centering');
+    if (caption) {
+      lines.push(`\\caption{${this.latexEscapeTable(caption)}}`);
+      lines.push(`\\label{tbl:${this.sanitizeLabelTable(labelBase)}}`);
+    }
+    lines.push(`\\begin{tabularx}{\\linewidth}{${this.buildTabularxSpec(ncols)}}`);
+    lines.push('\\hline');
+    if (data.length > 0) lines.push(`\\rowcolor[gray]{${HEADER_ROW_GRAY}}`);
+    const renderRow = (row: string[], isHeader: boolean): string => {
+      const cells = row.map((raw, idx) => {
+        let content = this.makecellIfNeeded(raw ?? '', 'l');
+        if (isHeader || (headerColumn && idx === 0)) content = `\\textbf{${content}}`;
+        if (headerColumn && !isHeader && idx === 0) content = `\\cellcolor[gray]{${HEADER_ROW_GRAY}}` + content;
+        return content;
+      });
+      return cells.join(' & ') + ' \\\\';
+    };
+    if (data.length > 0) {
+      lines.push(renderRow(data[0], true));
+      lines.push('\\hline');
+    }
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row.every(cell => !cell || cell.trim() === '')) continue; // skip empty
+      lines.push(renderRow(row, false));
+      lines.push('\\hline');
+    }
+    lines.push('\\end{tabularx}');
+    lines.push('\\end{table}');
+    return lines.join('\n') + '\n';
   }
 
   // ===== Robust tier-style TSV parser/rendering (aligned with samples/tsv_to_interlinear.ts) =====
@@ -311,21 +468,69 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
   private renderGlt(ex: { freeTranslations: { lang?: string; text: string }[] }): string | null {
     if (!ex.freeTranslations.length) return null;
     const joined = ex.freeTranslations.map(f => f.text).filter(Boolean).join(' ');
-    return joined || null;
+    if (!joined) return null;
+    // Strip any leading "Free" or "Free translation" labels that may have slipped through.
+    const cleaned = joined.replace(/^\s*(?:free(?:\s+translation)?)[\s:*\-–—]*\s*/i, '');
+    return cleaned;
   }
   private renderExampleN(ex: { tiers: Record<string,string[]>; tierOrder: string[]; freeTranslations: { lang?: string; text: string }[] }): string {
-    const { gCmd, lines } = this.renderGLLLines(ex); const glt = this.renderGlt(ex);
-    if (!lines.length) { const transOnly = glt ? `\\glt ${this.latexEscape(glt)}` : ''; return transOnly || '% (no aligned interlinear lines)'; }
-    const head = `\\${gCmd} ${this.latexEscape(lines[0])} \\\\`; const rest = lines.slice(1).map(ln => `${this.latexEscape(ln)} \\\\`).join('\n');
-    const gllBlock = [head, rest].filter(Boolean).join('\n'); const trans = glt ? `\\glt ${this.latexEscape(glt)}` : '';
-    return [gllBlock.trimEnd(), trans].filter(Boolean).join('\n');
+    const { gCmd, lines } = this.renderGLLLines(ex);
+    const glt = this.renderGlt(ex);
+    // Read spacing preferences
+    const cfg = vscode.workspace.getConfiguration('lingtex');
+    const useOpenup = !!cfg.get<boolean>('interlinear.useOpenup', true);
+    const openupGloss = (cfg.get<string>('interlinear.openupGlossAmount', '1em') || '1em').trim();
+    const openupBeforeTr = (cfg.get<string>('interlinear.openupBeforeTranslationAmount', '-0.5em') || '-0.5em').trim();
+    const openupAfterTr = (cfg.get<string>('interlinear.openupAfterTranslationAmount', '-0.5em') || '-0.5em').trim();
+    if (!lines.length) {
+      const transOnly = glt ? `\\glt ${this.latexEscape(glt)}` : '';
+      return transOnly || '% (no aligned interlinear lines)';
+    }
+    const head = `\\${gCmd} ${this.latexEscape(lines[0])} \\\\`;
+    const rest = lines.slice(1).map(ln => `${this.latexEscape(ln)} \\\\`).join('\n');
+    let gllBlock = [head, rest].filter(Boolean).join('\n');
+    const parts: string[] = [];
+    if (useOpenup && openupGloss && !/^0(?:pt|em)?$/i.test(openupGloss)) parts.push(`\\openup ${openupGloss}`);
+    parts.push(gllBlock.trimEnd());
+    if (glt) {
+      if (useOpenup && openupBeforeTr && !/^0(?:pt|em)?$/i.test(openupBeforeTr)) parts.push(`\\openup ${openupBeforeTr}`);
+      // Add a small paragraph skip before the translation
+      parts.push('\\par\\smallskip');
+      parts.push(`\\glt ${this.latexEscape(glt)}`);
+      if (useOpenup && openupAfterTr && !/^0(?:pt|em)?$/i.test(openupAfterTr)) parts.push(`\\openup ${openupAfterTr}`);
+    }
+    return parts.join('\n');
   }
   private asSingleExample(ex: any): string { return ['\n% Single example','\n\\begin{exe}','\\ex % \\label{ex:KEY}', this.renderExampleN(ex),'\\end{exe}\n'].join('\n'); }
   private asListStarter(first: any): string { return ['\n% Start a list example with this as (a).','\n\\begin{exe}','\\ex % \\label{ex:KEY}','\\begin{xlist}','\\ex % \\label{ex:KEY-a}', this.renderExampleN(first),'% Add more items as needed...','\\end{xlist}','\\end{exe}\n'].join('\n'); }
   private asListItem(ex: any): string { return ['\n% List item to add inside an existing xlist','\\ex % \\label{ex:KEY-?}', this.renderExampleN(ex), ''].join('\n'); }
-  private asItemsForExistingList(exs: any[]): string { return exs.map((e,i)=>['\\ex % \\label{ex:KEY-'+String(i+1)+'}', this.renderExampleN(e)].join('\n')).join('\n'); }
-  private asListOfExamples(exs: any[]): string { const letters = 'abcdefghijklmnopqrstuvwxyz'.split(''); const items = exs.map((e,i)=>['\\ex % \\label{ex:KEY-'+(letters[i]||String(i+1))+'}', this.renderExampleN(e)].join('\n')).join('\n'); return ['\n% List example (numbered subexamples a, b, c, ...)','\n\\begin{exe}','\\ex % \\label{ex:KEY}','\\begin{xlist}',items,'\\end{xlist}','\\end{exe}\n'].join('\n'); }
-  private asInterlinearText(exs: any[]): string { const items = exs.map((e,i)=>['\\ex % \\label{ex:KEY-'+String(i+1)+'}', this.renderExampleN(e)].join('\n')).join('\n'); return ['\n% Interlinear text (sequence of numbered examples)','\n\\begin{exe}',items,'\\end{exe}\n'].join('\n'); }
+  private asItemsForExistingList(exs: any[]): string {
+    const cfg = vscode.workspace.getConfiguration('lingtex');
+    const afterPref = (cfg.get<string>('interlinear.afterSkip', 'medskip') || 'medskip').toLowerCase();
+    const sep = afterPref && afterPref !== 'none' ? `\n\\par\\${afterPref}\n` : '\n\n';
+    return exs
+      .map((e,i)=>['\\ex % \\label{ex:KEY-'+String(i+1)+'}', this.renderExampleN(e)].join('\n'))
+      .join(sep);
+  }
+  private asListOfExamples(exs: any[]): string {
+    const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    const cfg = vscode.workspace.getConfiguration('lingtex');
+    const afterPref = (cfg.get<string>('interlinear.afterSkip', 'medskip') || 'medskip').toLowerCase();
+    const sep = afterPref && afterPref !== 'none' ? `\n\\par\\${afterPref}\n` : '\n';
+    const items = exs
+      .map((e,i)=>['\\ex % \\label{ex:KEY-'+(letters[i]||String(i+1))+'}', this.renderExampleN(e)].join('\n'))
+      .join(sep);
+    return ['\n% List example (numbered subexamples a, b, c, ...)','\n\\begin{exe}','\\ex % \\label{ex:KEY}','\\begin{xlist}',items,'\\end{xlist}','\\end{exe}\n'].join('\n');
+  }
+  private asInterlinearText(exs: any[]): string {
+    const cfg = vscode.workspace.getConfiguration('lingtex');
+    const afterPref = (cfg.get<string>('interlinear.afterSkip', 'medskip') || 'medskip').toLowerCase();
+    const sep = afterPref && afterPref !== 'none' ? `\n\\par\\${afterPref}\n` : '\n\n';
+    const items = exs
+      .map((e,i)=>['\\ex % \\label{ex:KEY-'+String(i+1)+'}', this.renderExampleN(e)].join('\n'))
+      .join(sep);
+    return ['\n% Interlinear text (sequence of numbered examples)','\n\\begin{exe}',items,'\\end{exe}\n'].join('\n');
+  }
 
   private latexEscape(s: string): string {
     // Preserve '~' so it remains a non-breaking space in LaTeX interlinear output.

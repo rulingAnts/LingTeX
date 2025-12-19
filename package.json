@@ -171,6 +171,38 @@
           ],
           "default": "insert",
           "description": "Where to send generated interlinear: insert at cursor, copy to clipboard, or prompt each time."
+        },
+        "lingtex.interlinear.beforeSkip": {
+          "type": "string",
+          "enum": ["none", "smallskip", "medskip", "bigskip"],
+          "default": "smallskip",
+          "description": "Vertical spacing before the free translation within an example."
+        },
+        "lingtex.interlinear.afterSkip": {
+          "type": "string",
+          "enum": ["none", "smallskip", "medskip", "bigskip"],
+          "default": "medskip",
+          "description": "Vertical spacing after the free translation (also separates examples)."
+        },
+        "lingtex.interlinear.useOpenup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply \\openup within the gloss block to increase spacing that also affects wrapped lines."
+        },
+        "lingtex.interlinear.openupGlossAmount": {
+          "type": "string",
+          "default": "1em",
+          "description": "Amount passed to \\openup before gloss lines (e.g., 1em or 6pt)."
+        },
+        "lingtex.interlinear.openupBeforeTranslationAmount": {
+          "type": "string",
+          "default": "-0.5em",
+          "description": "Amount passed to \\openup right before the translation (e.g., -0.5em)."
+        },
+        "lingtex.interlinear.openupAfterTranslationAmount": {
+          "type": "string",
+          "default": "-0.5em",
+          "description": "Amount passed to \\openup immediately after the translation line (e.g., -0.5em)."
         }
       }
     }
