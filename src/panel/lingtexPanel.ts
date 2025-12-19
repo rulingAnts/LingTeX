@@ -136,6 +136,14 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             Paste TSV below, choose options, and click Generate. Place the text cursor where you want the LaTeX inserted (especially for adding an item to an existing list). If the code is inserted in the wrong place, your document may fail to compile.
           </div>
           <div class="row">
+            <label style="min-width:130px;">LaTeX output:</label>
+            <select id="latexMode">
+              <option value="newList">New list (begin/end exe)</option>
+              <option value="listItem">List item (\\ex only)</option>
+              <option value="snippet">Snippet only (no list)</option>
+            </select>
+          </div>
+          <div class="row">
             <input type="checkbox" id="addLabel" />
             <label for="addLabel">Add label</label>
             <input type="text" id="labelInput" placeholder="ex: ex:my-example" disabled />
@@ -206,9 +214,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           });
           document.getElementById('btnGenerateInterlinear').addEventListener('click', () => {
             const tsv = (document.getElementById('tsvInput').value || '').trim();
+            const latexMode = (document.getElementById('latexMode').value || 'newList');
             const wantLabel = !!(document.getElementById('addLabel').checked);
             const label = document.getElementById('labelInput').value || '';
-            vscode.postMessage({ type: 'generateInterlinear', tsv, addLabel: wantLabel, label });
+            vscode.postMessage({ type: 'generateInterlinear', tsv, addLabel: wantLabel, label, latexMode });
           });
           document.querySelectorAll('[data-save]').forEach(btn => {
             btn.addEventListener('click', () => {
