@@ -18,20 +18,7 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "onStartupFinished",
-    "onViewContainer:lingtex",
-    "onView:lingtex.panel",
-    "onCommand:lingtex.convertExcelToTabularx",
-    "onCommand:lingtex.convertXLingPaperXmlToExcel",
-    "onCommand:lingtex.tsvToTabularx",
-    "onCommand:lingtex.acceptTsvToTabularx",
-    "onCommand:lingtex.cancelTsvToTabularx",
-    "onCommand:lingtex.tsvToInterlinear",
-    "onCommand:lingtex.acceptTsvToInterlinear",
-    "onCommand:lingtex.cancelTsvToInterlinear",
-    "onCommand:lingtex.tabularxToExcel",
-    "onCommand:lingtex.findMissingGlosses",
-    "onCommand:lingtex.sanitizeIntro",
-    "onCommand:lingtex.splitSections"
+    "onViewContainer:lingtex"
   ],
   "contributes": {
     "viewsContainers": {
@@ -190,11 +177,12 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run bundle",
-    "build": "tsc -p .",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc -p .",
     "watch": "tsc -w -p .",
     "lint": "echo 'No lint configured'",
     "test": "echo 'No tests yet'",
-    "bundle": "esbuild src/extension.ts --bundle --external:vscode --platform=node --format=cjs --sourcemap --minify --outfile=dist/extension.js --target=node18",
+    "bundle": "npm run clean && esbuild src/extension.ts --bundle --external:vscode --platform=node --format=cjs --sourcemap --minify --outfile=dist/extension.js --target=node18",
     "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
