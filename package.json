@@ -146,17 +146,20 @@
         "lingtex.tables.outputDir": {
           "type": "string",
           "default": "${workspaceFolder}/misc/tables",
-          "description": "Default output directory for generated LaTeX tables."
+          "description": "Default output directory for generated LaTeX tables.",
+          "scope": "resource"
         },
         "lingtex.figure.outputDir": {
           "type": "string",
           "default": "${workspaceFolder}/misc/figures",
-          "description": "Default output directory for imported figure images saved into the workspace."
+          "description": "Default output directory for imported figure images saved into the workspace.",
+          "scope": "resource"
         },
         "lingtex.tex.mainFile": {
           "type": "string",
           "default": "",
-          "description": "Path to the main .tex file. When set, image figure paths are made relative to this file (use ${workspaceFolder}/main.tex if helpful)."
+          "description": "Path to the main .tex file. When set, image figure paths are made relative to this file (use ${workspaceFolder}/main.tex if helpful).",
+          "scope": "resource"
         },
         "lingtex.excel.outputLocation": {
           "type": "string",
@@ -167,17 +170,20 @@
             "prompt"
           ],
           "default": "downloads",
-          "description": "Where to save Excel files: Downloads, Documents, Workspace (next to source), or Prompt to choose each time."
+          "description": "Where to save Excel files: Downloads, Documents, Workspace (next to source), or Prompt to choose each time.",
+          "scope": "resource"
         },
         "lingtex.excel.filenameTemplate": {
           "type": "string",
           "default": "${basename}-${date}-${time}",
-          "description": "Template for Excel filenames. Supports ${basename}, ${date} (YYYYMMDD), ${time} (HHmmss). Extension is added automatically."
+          "description": "Template for Excel filenames. Supports ${basename}, ${date} (YYYYMMDD), ${time} (HHmmss). Extension is added automatically.",
+          "scope": "resource"
         },
         "lingtex.alwaysShowActivityBar": {
           "type": "boolean",
           "default": false,
-          "description": "Always show the LingTeX Activity Bar icon, regardless of project contents."
+          "description": "Always show the LingTeX Activity Bar icon, regardless of project contents.",
+          "scope": "resource"
         },
         "lingtex.interlinear.outputMode": {
           "type": "string",
@@ -187,29 +193,34 @@
             "prompt"
           ],
           "default": "insert",
-          "description": "Where to send generated interlinear: insert at cursor, copy to clipboard, or prompt each time."
+          "description": "Where to send generated interlinear: insert at cursor, copy to clipboard, or prompt each time.",
+          "scope": "resource"
         },
         "lingtex.interlinear.beforeSkip": {
           "type": "string",
           "enum": ["none", "smallskip", "medskip", "bigskip"],
           "default": "smallskip",
-          "description": "Vertical spacing before the free translation within an example."
+          "description": "Vertical spacing before the free translation within an example.",
+          "scope": "resource"
         },
         "lingtex.interlinear.afterSkip": {
           "type": "string",
           "enum": ["none", "smallskip", "medskip", "bigskip"],
           "default": "medskip",
-          "description": "Vertical spacing after the free translation (also separates examples)."
+          "description": "Vertical spacing after the free translation (also separates examples).",
+          "scope": "resource"
         },
         "lingtex.interlinear.useOpenup": {
           "type": "boolean",
           "default": true,
-          "description": "Apply \\openup within the gloss block to increase spacing that also affects wrapped lines."
+          "description": "Apply \\openup within the gloss block to increase spacing that also affects wrapped lines.",
+          "scope": "resource"
         },
         "lingtex.interlinear.openupGlossAmount": {
           "type": "string",
           "default": "1em",
-          "description": "Interlinear line spacing: amount passed to \\openup before gloss lines (e.g., 1em or 6pt). Spacing before/after translation is automatically set to 50% of this value."
+          "description": "Interlinear line spacing: amount passed to \\openup before gloss lines (e.g., 1em or 6pt). Spacing before/after translation is automatically set to 50% of this value.",
+          "scope": "resource"
         }
       }
     }

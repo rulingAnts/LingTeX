@@ -3,11 +3,14 @@ import * as path from 'path';
 
 export class LingTeXViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewId = 'lingtex.panel';
+  private currentFolderIndex: number = 0;
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     webviewView.webview.options = { enableScripts: true };
-    const cfg = vscode.workspace.getConfiguration('lingtex');
+    const folders = vscode.workspace.workspaceFolders || [];
+    const scopeUri = folders[this.currentFolderIndex]?.uri;
+    const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
     const state = {
       tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
       excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
@@ -18,8 +21,47 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       inter_openupGlossAmount: cfg.get<string>('interlinear.openupGlossAmount', '1em'),
       figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures')
       ,tex_mainFile: cfg.get<string>('tex.mainFile', '')
+      ,folders: folders.map(f => ({ name: f.name, path: f.uri.fsPath }))
+      ,selectedFolderIndex: this.currentFolderIndex
     };
     webviewView.webview.html = this.getHtml(webviewView.webview, state);
+
+    // Auto-refresh panel when settings or workspace folders change
+    const refreshFromConfig = () => {
+      try {
+        const folders2 = vscode.workspace.workspaceFolders || [];
+        const scopeUri2 = folders2[this.currentFolderIndex]?.uri;
+        const cfg2 = vscode.workspace.getConfiguration('lingtex', scopeUri2);
+        const newState = {
+          tables_outputDir: cfg2.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
+          excel_outputLocation: cfg2.get<string>('excel.outputLocation', 'downloads'),
+          excel_filenameTemplate: cfg2.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}'),
+          inter_beforeSkip: cfg2.get<string>('interlinear.beforeSkip', 'smallskip'),
+          inter_afterSkip: cfg2.get<string>('interlinear.afterSkip', 'medskip'),
+          inter_useOpenup: cfg2.get<boolean>('interlinear.useOpenup', true),
+          inter_openupGlossAmount: cfg2.get<string>('interlinear.openupGlossAmount', '1em'),
+          figure_outputDir: cfg2.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures'),
+          tex_mainFile: cfg2.get<string>('tex.mainFile', ''),
+          folders: folders2.map(f => ({ name: f.name, path: f.uri.fsPath })),
+          selectedFolderIndex: this.currentFolderIndex
+        };
+        webviewView.webview.html = this.getHtml(webviewView.webview, newState);
+      } catch (e) {
+        // Non-fatal; ignore refresh errors
+      }
+    };
+    const cfgDisposable = vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('lingtex')) {
+        refreshFromConfig();
+      }
+    });
+    this.context.subscriptions.push(cfgDisposable);
+    const wfDisposable = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      const len = vscode.workspace.workspaceFolders?.length || 0;
+      if (this.currentFolderIndex >= len) this.currentFolderIndex = Math.max(0, len - 1);
+      refreshFromConfig();
+    });
+    this.context.subscriptions.push(wfDisposable);
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       try {
@@ -27,11 +69,33 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           await vscode.commands.executeCommand(msg.command);
           return;
         }
+        if (msg?.type === 'selectFolder' && typeof msg.index === 'number') {
+          const i = Math.max(0, Math.min((vscode.workspace.workspaceFolders?.length || 1) - 1, msg.index));
+          this.currentFolderIndex = i;
+          const scopeUri = vscode.workspace.workspaceFolders?.[i]?.uri;
+          const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
+          const state = {
+            tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
+            excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
+            excel_filenameTemplate: cfg.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}'),
+            inter_beforeSkip: cfg.get<string>('interlinear.beforeSkip', 'smallskip'),
+            inter_afterSkip: cfg.get<string>('interlinear.afterSkip', 'medskip'),
+            inter_useOpenup: cfg.get<boolean>('interlinear.useOpenup', true),
+            inter_openupGlossAmount: cfg.get<string>('interlinear.openupGlossAmount', '1em'),
+            figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures'),
+            tex_mainFile: cfg.get<string>('tex.mainFile', ''),
+            folders: (vscode.workspace.workspaceFolders||[]).map(f => ({ name: f.name, path: f.uri.fsPath })),
+            selectedFolderIndex: i
+          };
+          webviewView.webview.html = this.getHtml(webviewView.webview, state);
+          return;
+        }
         if (msg?.type === 'importImageFigure') {
           // Resolve output directory from message or config
-          const cfg = vscode.workspace.getConfiguration('lingtex');
+          const wf = vscode.workspace.workspaceFolders?.[this.currentFolderIndex];
+          const scopeUri = wf?.uri;
+          const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
           let outDir = String(cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures') || '').trim();
-          const wf = vscode.workspace.workspaceFolders?.[0];
           const rootFsPath = wf?.uri.fsPath || '';
           if (!outDir) { vscode.window.showErrorMessage('LingTeX: Please set a figures output directory.'); return; }
           if (outDir.startsWith('${workspaceFolder}')) outDir = path.join(rootFsPath, outDir.replace('${workspaceFolder}', ''));
@@ -180,19 +244,31 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         if (msg?.type === 'updateSetting' && typeof msg.key === 'string') {
           const key = String(msg.key);
           const value = msg.value;
-          const cfgRoot = vscode.workspace.getConfiguration('lingtex');
+          const scopeUri = vscode.workspace.workspaceFolders?.[this.currentFolderIndex]?.uri;
+          const cfgRoot = vscode.workspace.getConfiguration('lingtex', scopeUri);
           if (key.startsWith('lingtex.')) {
             const sub = key.split('.').slice(1).join('.');
-            await cfgRoot.update(sub, value, vscode.ConfigurationTarget.Workspace);
+            await cfgRoot.update(sub, value, vscode.ConfigurationTarget.WorkspaceFolder);
           } else {
-            await cfgRoot.update(key, value, vscode.ConfigurationTarget.Workspace);
+            await cfgRoot.update(key, value, vscode.ConfigurationTarget.WorkspaceFolder);
           }
           vscode.window.showInformationMessage('LingTeX: Settings updated');
           return;
         }
+        if (msg?.type === 'updateSettings' && msg.entries && typeof msg.entries === 'object') {
+          const entries: Record<string, any> = msg.entries;
+          const scopeUri = vscode.workspace.workspaceFolders?.[this.currentFolderIndex]?.uri;
+          const cfgRoot = vscode.workspace.getConfiguration('lingtex', scopeUri);
+          for (const [key, value] of Object.entries(entries)) {
+            const sub = key.startsWith('lingtex.') ? key.split('.').slice(1).join('.') : key;
+            await cfgRoot.update(sub, value, vscode.ConfigurationTarget.WorkspaceFolder);
+          }
+          vscode.window.showInformationMessage('LingTeX: All settings saved');
+          return;
+        }
         if (msg?.type === 'chooseFolder' && typeof msg.key === 'string') {
           const key = String(msg.key);
-          const wf = vscode.workspace.workspaceFolders?.[0];
+          const wf = vscode.workspace.workspaceFolders?.[this.currentFolderIndex];
           const rootUri = wf?.uri;
           const picks = await vscode.window.showOpenDialog({
             canSelectFiles: false,
@@ -203,16 +279,52 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           if (!picks || !picks.length) return;
           const chosen = picks[0];
           const rootFsPath = wf?.uri.fsPath || '';
+          if (rootFsPath && !chosen.fsPath.startsWith(rootFsPath)) {
+            vscode.window.showErrorMessage('LingTeX: Please choose a folder inside the current workspace.');
+            return;
+          }
           let storeValue = chosen.fsPath;
           if (rootFsPath && storeValue.startsWith(rootFsPath)) {
             const rel = storeValue.slice(rootFsPath.length).replace(/^\//, '').split(path.sep).join('/');
             storeValue = '${workspaceFolder}/' + rel;
           }
-          const cfgRoot = vscode.workspace.getConfiguration('lingtex');
+          const scopeUri2 = vscode.workspace.workspaceFolders?.[this.currentFolderIndex]?.uri;
+          const cfgRoot = vscode.workspace.getConfiguration('lingtex', scopeUri2);
           const sub = key.split('.').slice(1).join('.');
-          await cfgRoot.update(sub, storeValue, vscode.ConfigurationTarget.Workspace);
+          await cfgRoot.update(sub, storeValue, vscode.ConfigurationTarget.WorkspaceFolder);
           webviewView.webview.postMessage({ type: 'folderChosen', key, value: storeValue });
           vscode.window.showInformationMessage('LingTeX: Folder selected and setting updated');
+          return;
+        }
+        if (msg?.type === 'chooseFile' && typeof msg.key === 'string') {
+          const key = String(msg.key);
+          const wf = vscode.workspace.workspaceFolders?.[this.currentFolderIndex];
+          const rootUri = wf?.uri;
+          const picks = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            defaultUri: rootUri,
+            filters: { TeX: ['tex'] }
+          });
+          if (!picks || !picks.length) return;
+          const chosen = picks[0];
+          const rootFsPath = wf?.uri.fsPath || '';
+          if (rootFsPath && !chosen.fsPath.startsWith(rootFsPath)) {
+            vscode.window.showErrorMessage('LingTeX: Please choose a file inside the current workspace.');
+            return;
+          }
+          let storeValue = chosen.fsPath;
+          if (rootFsPath && storeValue.startsWith(rootFsPath)) {
+            const rel = storeValue.slice(rootFsPath.length).replace(/^\//, '').split(path.sep).join('/');
+            storeValue = '${workspaceFolder}/' + rel;
+          }
+          const scopeUri3 = vscode.workspace.workspaceFolders?.[this.currentFolderIndex]?.uri;
+          const cfgRoot = vscode.workspace.getConfiguration('lingtex', scopeUri3);
+          const sub = key.split('.').slice(1).join('.');
+          await cfgRoot.update(sub, storeValue, vscode.ConfigurationTarget.WorkspaceFolder);
+          webviewView.webview.postMessage({ type: 'fileChosen', key, value: storeValue });
+          vscode.window.showInformationMessage('LingTeX: File selected and setting updated');
           return;
         }
       } catch (err: any) {
@@ -317,12 +429,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             Choose an image file, it will be copied into your workspace, and a \figure block will be inserted at your cursor.
           </div>
           <div class="help" style="margin:0 0 8px;">
-            If LaTeX reports the figure is too large, adjust the \includegraphics options (e.g., width/height/keepaspectratio) until it fits. The compiler might fail to compile until you fix it. Quick reference: <a href="https://www.overleaf.com/learn/latex/Inserting_Images" target="_blank">Overleaf – Inserting Images</a>.
-          </div>
-          <div class="row">
-            <label style="min-width:130px;">Main TeX file:</label>
-            <input type="text" id="tex_mainFile" value="${this.escapeAttr(state.tex_mainFile)}" placeholder="e.g., \${workspaceFolder}/main.tex" />
-            <button class="btn" data-save="tex_mainFile">Save</button>
+            If LaTeX reports the figure is too large, adjust the \includegraphics options (e.g., width/height/keepaspectratio) until it fits. The compiler might fail to compile until you fix it. Configure the Main TeX file in Settings so image paths resolve relative to your master document. Quick reference: <a href="https://www.overleaf.com/learn/latex/Inserting_Images" target="_blank">Overleaf – Inserting Images</a>.
           </div>
           <div class="row">
             <label style="min-width:130px;">Caption:</label>
@@ -333,7 +440,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <input type="text" id="figure_cite" placeholder="e.g., sil2011DLM (optional)" />
           </div>
           <div class="help" style="margin:0 0 8px;">
-            Tip: Set the Main TeX file to ensure image paths are relative to your master document. The [H] float specifier requires <code>\\usepackage{float}</code> in your preamble.
+            Tip: The [H] float specifier requires <code>\\usepackage{float}</code> in your preamble.
           </div>
           <div class="row">
             <button class="btn" id="btnImportImageFigure">Choose Image and Insert</button>
@@ -343,12 +450,31 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         <details>
           <summary><strong>Settings</strong></summary>
           <div class="row">
+            <label style="min-width:130px;">Folder:</label>
+            <select id="ltx_folderSel">
+              ${(state.folders||[]).map((f:any,idx:number)=>`<option value="${idx}" ${state.selectedFolderIndex===idx?'selected':''}>${this.escapeAttr(f.name)} — ${this.escapeAttr(f.path)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="row">
             <label style="min-width:130px;">Tables output dir:</label>
-            <input type="text" id="tables_outputDir" value="${this.escapeAttr(state.tables_outputDir)}" />
+            <button class="btn" id="btnBrowseTablesOutputDir">Browse…</button>
+          </div>
+          <div class="row">
+            <input type="text" id="tables_outputDir" value="${this.escapeAttr(state.tables_outputDir)}" disabled />
           </div>
           <div class="row">
             <label style="min-width:130px;">Figures output dir:</label>
-            <input type="text" id="figure_outputDir" value="${this.escapeAttr(state.figure_outputDir)}" />
+            <button class="btn" id="btnBrowseFiguresOutputDir">Browse…</button>
+          </div>
+          <div class="row">
+            <input type="text" id="figure_outputDir" value="${this.escapeAttr(state.figure_outputDir)}" disabled />
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">Main TeX file:</label>
+            <button class="btn" id="btnBrowseMainTexFile">Browse…</button>
+          </div>
+          <div class="row">
+            <input type="text" id="tex_mainFile" value="${this.escapeAttr(state.tex_mainFile)}" disabled />
           </div>
           <div class="row">
             <label style="min-width:130px;">Excel output location:</label>
@@ -381,24 +507,21 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <input type="text" id="inter_openupGlossAmount" value="${this.escapeAttr(state.inter_openupGlossAmount)}" placeholder="e.g., 1em or 6pt" />
           </div>
           <div class="help" style="margin:0 0 8px;">Interlinear line spacing controls gloss lines; spacing before/after translation is auto-set to 50% of this value.</div>
-          <div class="row">
-            <button class="btn" data-save="tables_outputDir">Save Tables Dir</button>
-            <button class="btn" data-save="excel_outputLocation">Save Excel Location</button>
-            <button class="btn" data-save="excel_filenameTemplate">Save Excel Template</button>
-            <button class="btn" data-save="inter_beforeSkip">Save Before Spacing</button>
-            <button class="btn" data-save="inter_afterSkip">Save After Spacing</button>
-            <button class="btn" data-save="inter_useOpenup">Save openup</button>
-            <button class="btn" data-save="inter_openupGlossAmount">Save gloss openup</button>
-          </div>
-
-          <div class="row">
-            <button class="btn" id="btnBrowseTablesOutputDir">Browse Tables Dir…</button>
-            <button class="btn" id="btnBrowseFiguresOutputDir">Browse Figures Dir…</button>
+          <div class="row" style="gap:8px;">
+            <button class="btn" id="btnSaveAllSettings">Save All Settings</button>
+            <button class="btn" id="btnResetDefaults">Reset Defaults</button>
           </div>
         </details>
 
         <script>
           const vscode = acquireVsCodeApi();
+          const folderSel = document.getElementById('ltx_folderSel');
+          if (folderSel) {
+            folderSel.addEventListener('change', () => {
+              const index = Number(folderSel.value || 0) || 0;
+              vscode.postMessage({ type: 'selectFolder', index });
+            });
+          }
           document.querySelectorAll('[data-cmd]').forEach(btn => {
             btn.addEventListener('click', () => {
               const command = btn.getAttribute('data-cmd');
@@ -422,10 +545,18 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                     document.getElementById('btnBrowseFiguresOutputDir').addEventListener('click', () => {
                       vscode.postMessage({ type: 'chooseFolder', key: 'lingtex.figure.outputDir' });
                     });
+                    document.getElementById('btnBrowseMainTexFile').addEventListener('click', () => {
+                      vscode.postMessage({ type: 'chooseFile', key: 'lingtex.tex.mainFile' });
+                    });
 
                     window.addEventListener('message', (ev) => {
                       const msg = ev.data;
                       if (msg && msg.type === 'folderChosen' && typeof msg.key === 'string' && typeof msg.value === 'string') {
+                        const id = msg.key.split('.').slice(1).join('_');
+                        const el = document.getElementById(id);
+                        if (el) el.value = msg.value;
+                      }
+                      if (msg && msg.type === 'fileChosen' && typeof msg.key === 'string' && typeof msg.value === 'string') {
                         const id = msg.key.split('.').slice(1).join('_');
                         const el = document.getElementById(id);
                         if (el) el.value = msg.value;
@@ -444,24 +575,44 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             const headerColumn = !!(document.getElementById('tabx_headerCol').checked);
             vscode.postMessage({ type: 'generateTabularx', tsv, caption, label, headerColumn });
           });
-          document.querySelectorAll('[data-save]').forEach(btn => {
-            btn.addEventListener('click', () => {
-              const key = btn.getAttribute('data-save');
-              const el = document.getElementById(key);
-              const value = el && (el.value ?? el.textContent);
-              let configKey = key;
-              if (key === 'tables_outputDir') configKey = 'lingtex.tables.outputDir';
-              if (key === 'excel_outputLocation') configKey = 'lingtex.excel.outputLocation';
-              if (key === 'excel_filenameTemplate') configKey = 'lingtex.excel.filenameTemplate';
-              if (key === 'figure_outputDir') configKey = 'lingtex.figure.outputDir';
-              if (key === 'tex_mainFile') configKey = 'lingtex.tex.mainFile';
-              if (key === 'inter_beforeSkip') configKey = 'lingtex.interlinear.beforeSkip';
-              if (key === 'inter_afterSkip') configKey = 'lingtex.interlinear.afterSkip';
-              if (key === 'inter_useOpenup') configKey = 'lingtex.interlinear.useOpenup';
-              if (key === 'inter_openupGlossAmount') configKey = 'lingtex.interlinear.openupGlossAmount';
-          
-              vscode.postMessage({ type: 'updateSetting', key: configKey, value });
-            });
+          // Removed individual save buttons; using Save All Settings instead.
+
+          document.getElementById('btnSaveAllSettings').addEventListener('click', () => {
+            const entries = {
+              'lingtex.tables.outputDir': (document.getElementById('tables_outputDir').value || '').trim(),
+              'lingtex.figure.outputDir': (document.getElementById('figure_outputDir').value || '').trim(),
+              'lingtex.excel.outputLocation': (document.getElementById('excel_outputLocation').value || '').trim(),
+              'lingtex.excel.filenameTemplate': (document.getElementById('excel_filenameTemplate').value || '').trim(),
+              'lingtex.interlinear.beforeSkip': (document.getElementById('inter_beforeSkip').value || '').trim(),
+              'lingtex.interlinear.afterSkip': (document.getElementById('inter_afterSkip').value || '').trim(),
+              'lingtex.interlinear.useOpenup': !!(document.getElementById('inter_useOpenup').checked),
+              'lingtex.interlinear.openupGlossAmount': (document.getElementById('inter_openupGlossAmount').value || '').trim(),
+              'lingtex.tex.mainFile': (document.getElementById('tex_mainFile').value || '').trim(),
+            };
+            vscode.postMessage({ type: 'updateSettings', entries });
+          });
+          document.getElementById('btnResetDefaults').addEventListener('click', () => {
+            const entries = {
+              'lingtex.tables.outputDir': '\${workspaceFolder}/misc/tables',
+              'lingtex.figure.outputDir': '\${workspaceFolder}/misc/figures',
+              'lingtex.excel.outputLocation': 'downloads',
+              'lingtex.excel.filenameTemplate': '\${basename}-\${date}-\${time}',
+              'lingtex.interlinear.beforeSkip': 'smallskip',
+              'lingtex.interlinear.afterSkip': 'medskip',
+              'lingtex.interlinear.useOpenup': true,
+              'lingtex.interlinear.openupGlossAmount': '1em',
+              'lingtex.tex.mainFile': ''
+            };
+            document.getElementById('tables_outputDir').value = entries['lingtex.tables.outputDir'];
+            document.getElementById('figure_outputDir').value = entries['lingtex.figure.outputDir'];
+            document.getElementById('excel_outputLocation').value = entries['lingtex.excel.outputLocation'];
+            document.getElementById('excel_filenameTemplate').value = entries['lingtex.excel.filenameTemplate'];
+            document.getElementById('inter_beforeSkip').value = entries['lingtex.interlinear.beforeSkip'];
+            document.getElementById('inter_afterSkip').value = entries['lingtex.interlinear.afterSkip'];
+            document.getElementById('inter_useOpenup').checked = entries['lingtex.interlinear.useOpenup'];
+            document.getElementById('inter_openupGlossAmount').value = entries['lingtex.interlinear.openupGlossAmount'];
+            document.getElementById('tex_mainFile').value = entries['lingtex.tex.mainFile'];
+            vscode.postMessage({ type: 'updateSettings', entries });
           });
         </script>
       </body>

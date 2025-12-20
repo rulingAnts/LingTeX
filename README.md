@@ -25,6 +25,12 @@ LingTeX now uses a panel-only UX. Commands are hidden from the Command Palette; 
 Panel tips:
 - Use “Browse Tables Dir…” and “Browse Figures Dir…” to pick folders. Selected paths inside the repo are saved as `${workspaceFolder}/…` for portability.
 
+### Per-Folder Settings (Multi-root)
+- Settings are scoped to the selected workspace folder. Use the Folder dropdown in the Settings panel to switch which folder you’re editing.
+- When you browse for folders/files inside the selected workspace folder, LingTeX saves them as `${workspaceFolder}/…` to stay portable. Outside-of-repo picks are saved as absolute paths.
+- Each root-level folder maintains its own `.vscode/settings.json`. Switching folders refreshes the panel to show that folder’s saved values.
+- If the extension’s settings schema changes (e.g., after updates), reload the VS Code window so new scopes and defaults take effect.
+
 ## Development
 - Run and debug via the provided launch configuration (Run Extension).
 - Build with `npm run build`; watch with `npm run watch`.
