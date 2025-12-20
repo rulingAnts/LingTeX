@@ -42,7 +42,7 @@ Use the LingTeX panel section “Image → LaTeX Figure” to import an image an
 ### Setup
 - Set “Figures output dir” (default: `${workspaceFolder}/misc/figures`).
 - Set “Main TeX file” (optional). Paths in the inserted `\includegraphics{...}` are made relative to this file. This ensures correct paths when inserting into files included via `\input{...}`.
-- Optional: enter a Caption and a Citation key (used in `\parencite{...}`).
+ - Optional: enter a Caption. Add any citations manually in your LaTeX source if needed.
  - You can also click “Browse Figures Dir…” in Settings to select a folder.
 
 ### Output format
