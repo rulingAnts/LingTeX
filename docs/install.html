@@ -28,7 +28,7 @@
       </div>
       <div class="header-actions">
         <a class="btn ghost" href="./index.html">Home</a>
-        <a class="btn ghost" href="https://github.com/rulingAnts/LingTeX" target="_blank" rel="noopener">GitHub</a>
+                  <p class="hero-desc">New to LaTeX and VS Code? Follow the platform-specific steps below.</p>
       </div>
     </div>
   </header>
@@ -40,22 +40,133 @@
         <div>
           <h2 class="hero-title">Download and Install</h2>
           <p class="hero-desc">Requires Visual Studio Code. Download the latest VSIX and install.</p>
+            <section class="content">
+              <article class="card">
+                <h3>Step 1 — Install LaTeX (no GUI)</h3>
+                <p>We recommend the official TeX Live/MacTeX distributions without a GUI. Pick your platform below; you can switch anytime.</p>
+
+                <div id="platformSwitch" style="display:flex; gap:8px; margin:12px 0 16px; flex-wrap: wrap;">
+                  <button class="btn ghost" data-platform="mac">macOS</button>
+                  <button class="btn ghost" data-platform="win">Windows</button>
+                  <button class="btn ghost" data-platform="linux">Linux</button>
+                </div>
+
+                <div id="platform-panels" class="platform-panels">
+                  <div class="platform-panel" data-platform="mac" style="display:none">
+                    <h4>macOS (MacTeX/BasicTeX)</h4>
+                    <ol>
+                      <li>
+                        Install <strong>BasicTeX</strong> (no GUI, smaller download) from
+                        <a href="https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg" target="_blank" rel="noopener">CTAN (BasicTeX.pkg)</a>.
+                        Alternatively, full <strong>MacTeX</strong> from <a href="https://tug.org/mactex/" target="_blank" rel="noopener">tug.org/mactex</a>.
+                      </li>
+                      <li>
+                        Open Terminal and install required engines, tools, and packages with <code>tlmgr</code>:
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>sudo tlmgr update --self
+        sudo tlmgr install latexmk xetex biber \
+          datetime2 footmisc comment geometry fontspec \
+          langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+          setspace enumitem ragged2e needspace placeins float longtable \
+          tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+          caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape</code></pre>
+                      </li>
+                      <li>
+                        Verify tools:
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>xelatex --version
+        biber --version
+        latexmk -v</code></pre>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div class="platform-panel" data-platform="win" style="display:none">
+                    <h4>Windows (TeX Live)</h4>
+                    <ol>
+                      <li>
+                        Download and run the TeX Live installer from
+                        <a href="https://tug.org/texlive/windows.html" target="_blank" rel="noopener">tug.org/texlive/windows.html</a>
+                        (choose scheme without GUI editors).
+                      </li>
+                      <li>
+                        Open the “TeX Live Command Prompt” (from Start Menu) and install packages:
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>tlmgr update --self
+        tlmgr install latexmk xetex biber \
+          datetime2 footmisc comment geometry fontspec \
+          langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+          setspace enumitem ragged2e needspace placeins float longtable \
+          tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+          caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape</code></pre>
+                      </li>
+                      <li>
+                        Verify tools:
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>xelatex --version
+        biber --version
+        latexmk -v</code></pre>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div class="platform-panel" data-platform="linux" style="display:none">
+                    <h4>Linux</h4>
+                    <p><strong>Recommended:</strong> Use the official TeX Live installer (current year) for the latest packages.</p>
+                    <ol>
+                      <li>
+                        Install TeX Live per <a href="https://tug.org/texlive/quickinstall.html" target="_blank" rel="noopener">Quick Install</a>.
+                      </li>
+                      <li>
+                        Then install required packages with <code>tlmgr</code>:
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>tlmgr update --self
+        tlmgr install latexmk xetex biber \
+          datetime2 footmisc comment geometry fontspec \
+          langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+          setspace enumitem ragged2e needspace placeins float longtable \
+          tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+          caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape</code></pre>
+                      </li>
+                    </ol>
+                    <details>
+                      <summary>Alternatively, use your distro packages (quick, may be older)</summary>
+                      <div style="margin-top:8px">
+                        <p><strong>Debian/Ubuntu</strong></p>
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>sudo apt update
+        sudo apt install -y texlive texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex biber latexmk</code></pre>
+                        <p><strong>Fedora</strong></p>
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>sudo dnf install -y texlive-scheme-medium texlive-biber latexmk</code></pre>
+                        <p><strong>Arch</strong></p>
+                        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>sudo pacman -S --needed texlive-most biber latexmk</code></pre>
+                        <p class="more">If a package is missing at compile time, install it via your package manager or <code>tlmgr</code> where available.</p>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+
+                <p class="more">Why these packages? Your LaTeX template uses <em>XeLaTeX/LuaLaTeX</em> and relies on: <code>langsci-gb4e</code>, <code>graphicx</code>, <code>tabularx</code>, <code>biblatex</code> (with <code>biber</code>), <code>glossaries-extra</code>, <code>hyperref</code>, <code>cleveref</code>, and many common formatting packages listed above.</p>
+              </article>
+            </section>
+
           <div class="hero-badges">
             <img src="https://img.shields.io/github/v/release/rulingAnts/LingTeX" alt="Latest release">
-          </div>
-        </div>
+                <h3>Step 2 — Install Visual Studio Code and LaTeX extensions</h3>
+                <p>Install VS Code, then add LaTeX helper extensions for the best experience:</p>
       </div>
-      <div class="hero-right">
-        <a id="downloadVsix" class="btn primary btn-wide" href="#" download>Download VSIX</a>
-        <p id="latestVersion" class="version-text">Fetching latest version…</p>
+                  <li><strong>VS Code:</strong> <a href="https://code.visualstudio.com/" target="_blank" rel="noopener">Download for Windows, macOS, Linux</a></li>
+                  <li><strong>LaTeX Workshop:</strong> <a href="https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop" target="_blank" rel="noopener">Marketplace</a></li>
+                  <li><strong>LaTeX Utilities:</strong> <a href="https://marketplace.visualstudio.com/items?itemName=tecosaur.latex-utilities" target="_blank" rel="noopener">Marketplace</a></li>
       </div>
-    </section>
+                <p>Install the extensions from inside VS Code (Extensions view) or via CLI:</p>
+                <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>code --install-extension James-Yu.latex-workshop
+        code --install-extension tecosaur.latex-utilities</code></pre>
+                <p class="more">Tip (macOS): enable the <code>code</code> shell command via Command Palette → “Shell Command: Install 'code' command in PATH”.</p>
+                <details>
+                  <summary>Use XeLaTeX in LaTeX Workshop</summary>
+                  <p style="margin-top:8px">In VS Code: Command Palette → “LaTeX Workshop: Build with recipe” → choose “latexmk (xelatex)”. Ensure <code>latexmk</code> and <code>xelatex</code> are installed (Step 1).</p>
+                </details>
 
     <section class="content">
       <article class="card">
         <h3>Prerequisite: Install Visual Studio Code</h3>
         <p>LingTeX is a Visual Studio Code extension. Please install VS Code first:</p>
-        <ul>
+                <h3>Step 3 — Install LingTeX from VSIX (GUI)</h3>
           <li><strong>Windows, macOS, Linux:</strong> Get VS Code from <a href="https://code.visualstudio.com/" target="_blank" rel="noopener">code.visualstudio.com</a>.</li>
           <li><strong>macOS (Homebrew):</strong> <code>brew install --cask visual-studio-code</code></li>
           <li><strong>Linux (Snap):</strong> <code>sudo snap install --classic code</code></li>
@@ -67,18 +178,31 @@
     <section class="content two-col">
       <article class="card">
         <h3>Install from VSIX (GUI)</h3>
-        <ol>
+                <h3>Install LingTeX via CLI</h3>
           <li>Open Visual Studio Code.</li>
           <li>Go to View → Extensions.</li>
           <li>Click the ••• menu in the top-right of the Extensions panel.</li>
           <li>Select “Install from VSIX…”.</li>
           <li>Choose the downloaded LingTeX `.vsix` file.</li>
           <li>When prompted, click “Install”. Reload the window if asked.</li>
-        </ol>
+                  <li>Missing dependencies: install “LaTeX Workshop” and “LaTeX Utilities”.</li>
+                  <li>Biber missing: install <code>biber</code> (Step 1) for <code>biblatex</code> support.</li>
         <p class="more">If double-clicking the `.vsix` doesn’t open VS Code, use the steps above from inside VS Code.</p>
       </article>
       <aside class="card">
         <h3>Install via CLI</h3>
+            <section class="content">
+              <article class="card">
+                <h3>Verify your setup</h3>
+                <ol>
+                  <li>Open a LaTeX project in VS Code and run “LaTeX Workshop: Build with recipe → latexmk (xelatex)”.</li>
+                  <li>If your project uses <code>biblatex</code>, ensure the recipe runs <code>biber</code> (or run it manually between LaTeX passes).</li>
+                  <li>If you use glossaries (<code>glossaries-extra</code>), prefer <code>\makenoidxglossaries</code> (used by the sample template).</li>
+                </ol>
+                <p class="more">Problems? Check the LaTeX Workshop “LOG &amp; OUTPUT” pane for missing packages. Install any missing package using <code>tlmgr</code> (TeX Live/MacTeX) or your package manager.</p>
+              </article>
+            </section>
+
         <p>You can install the VSIX using the `code` command if it’s on your PATH.</p>
         <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>code --install-extension /path/to/LingTeX-x.y.z.vsix</code></pre>
         <p class="more">On macOS, you may need to enable the `code` shell command from Command Palette: “Shell Command: Install 'code' command in PATH”.</p>
@@ -153,6 +277,36 @@
     }
 
     wireLatestVsix();
+
+    // Platform tabs: auto-detect and allow switching
+    (function setupPlatformTabs(){
+      const switchEl = document.getElementById('platformSwitch');
+      const panels = Array.from(document.querySelectorAll('.platform-panel'));
+      if (!switchEl || panels.length === 0) return;
+      function show(platform){
+        panels.forEach(p => p.style.display = p.dataset.platform === platform ? 'block' : 'none');
+        Array.from(switchEl.querySelectorAll('button')).forEach(btn => {
+          if (btn.dataset.platform === platform) {
+            btn.classList.add('primary');
+            btn.classList.remove('ghost');
+          } else {
+            btn.classList.add('ghost');
+            btn.classList.remove('primary');
+          }
+        });
+      }
+      const ua = navigator.userAgent || navigator.platform || '';
+      let detected = 'mac';
+      if (/Windows/i.test(ua)) detected = 'win';
+      else if (/Linux|X11|Ubuntu|Fedora|Arch/i.test(ua)) detected = 'linux';
+      else if (/Mac|Macintosh|Mac OS X|Mac OS/i.test(ua)) detected = 'mac';
+      show(detected);
+      switchEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-platform]');
+        if (!btn) return;
+        show(btn.dataset.platform);
+      });
+    })();
   </script>
 </body>
 </html>
