@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install LingTeX – VS Code Extension</title>
+  <meta name="description" content="Install LingTeX for Visual Studio Code. Download the latest VSIX and follow step-by-step instructions.">
+  <link rel="icon" href="/resources/lingtex-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/docs/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="/resources/lingtex-icon.png" alt="LingTeX icon" class="brand-icon">
+        <div class="brand-text">
+          <h1 class="title">LingTeX</h1>
+          <p class="subtitle">Install the extension</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a class="btn ghost" href="/docs/index.html">Home</a>
+        <a class="btn ghost" href="https://github.com/rulingAnts/LingTeX" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-left">
+        <img src="/resources/lingtex-icon.png" alt="LingTeX icon" class="hero-icon">
+        <div>
+          <h2 class="hero-title">Download and Install</h2>
+          <p class="hero-desc">Get the latest VSIX and install in VS Code.</p>
+          <div class="hero-badges">
+            <img src="https://img.shields.io/github/v/release/rulingAnts/LingTeX" alt="Latest release">
+          </div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <a id="downloadVsix" class="btn primary btn-wide" href="#" download>Download VSIX</a>
+        <p id="latestVersion" class="version-text">Fetching latest version…</p>
+      </div>
+    </section>
+
+    <section class="content two-col">
+      <article class="card">
+        <h3>Install from VSIX (GUI)</h3>
+        <ol>
+          <li>Open Visual Studio Code.</li>
+          <li>Go to View → Extensions.</li>
+          <li>Click the ••• menu in the top-right of the Extensions panel.</li>
+          <li>Select “Install from VSIX…”.</li>
+          <li>Choose the downloaded LingTeX `.vsix` file.</li>
+          <li>When prompted, click “Install”. Reload the window if asked.</li>
+        </ol>
+        <p class="more">If double-clicking the `.vsix` doesn’t open VS Code, use the steps above from inside VS Code.</p>
+      </article>
+      <aside class="card">
+        <h3>Install via CLI</h3>
+        <p>You can install the VSIX using the `code` command if it’s on your PATH.</p>
+        <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>code --install-extension /path/to/LingTeX-x.y.z.vsix</code></pre>
+        <p class="more">On macOS, you may need to enable the `code` shell command from Command Palette: “Shell Command: Install 'code' command in PATH”.</p>
+        <h3 style="margin-top:1rem">Troubleshooting</h3>
+        <ul>
+          <li>VS Code says the extension is invalid: ensure the full `.vsix` downloaded and try again.</li>
+          <li>Missing dependencies: install “LaTeX Workshop” and “LaTeX Utilities” for the best experience.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="content">
+      <article class="card">
+        <h3>What’s included</h3>
+        <ul class="features">
+          <li>Panel-first UX with quick actions and templates.</li>
+          <li>TSV → Interlinear (gb4e) with spacing controls.</li>
+          <li>TSV ↔ LaTeX tabularx conversions; tabularx → Excel export.</li>
+          <li>Import images as ready-to-compile LaTeX figure blocks.</li>
+        </ul>
+        <p class="more">See full details in the <a href="https://github.com/rulingAnts/LingTeX#readme" target="_blank" rel="noopener">README</a>.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© rulingAnts — LingTeX. Direct VSIX download and installation instructions.</p>
+      <p><a href="https://github.com/rulingAnts/LingTeX/releases" target="_blank" rel="noopener">All releases</a></p>
+    </div>
+  </footer>
+
+  <script>
+    const owner = 'rulingAnts';
+    const repo = 'LingTeX';
+    const latestUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+
+    async function wireLatestVsix() {
+      const versionEl = document.getElementById('latestVersion');
+      const downloadEl = document.getElementById('downloadVsix');
+      try {
+        const res = await fetch(latestUrl, { headers: { 'Accept': 'application/vnd.github+json' } });
+        if (!res.ok) throw new Error('GitHub API error ' + res.status);
+        const json = await res.json();
+        const tag = json.tag_name || json.name || '';
+        versionEl.textContent = tag ? `Latest: ${tag}` : 'Latest release';
+
+        const asset = (json.assets || []).find(a => a && typeof a.name === 'string' && a.name.toLowerCase().endsWith('.vsix'));
+        if (asset && asset.browser_download_url) {
+          downloadEl.href = asset.browser_download_url;
+          downloadEl.removeAttribute('aria-disabled');
+          downloadEl.classList.remove('disabled');
+        } else {
+          // Fallback to releases page
+          downloadEl.href = `https://github.com/${owner}/${repo}/releases/latest`;
+          downloadEl.textContent = 'Open Releases';
+          downloadEl.classList.add('ghost');
+          versionEl.insertAdjacentHTML('beforeend', ' — VSIX asset not detected');
+        }
+      } catch (e) {
+        versionEl.textContent = 'Could not fetch latest release';
+        downloadEl.href = `https://github.com/${owner}/${repo}/releases/latest`;
+        downloadEl.textContent = 'Open Releases';
+        downloadEl.classList.add('ghost');
+      }
+    }
+
+    wireLatestVsix();
+  </script>
+</body>
+</html>

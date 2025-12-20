@@ -37,7 +37,6 @@
           <p class="hero-desc">Designed to complement LaTeX Workshop & LaTeX Utilities.</p>
           <div class="hero-badges">
             <img src="https://img.shields.io/github/v/release/rulingAnts/LingTeX" alt="Latest release">
-            <img src="https://img.shields.io/github/downloads/rulingAnts/LingTeX/total" alt="Downloads">
             <a class="badge" href="LICENSE" target="_blank" rel="noopener">
               <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License">
             </a>
@@ -45,16 +44,11 @@
         </div>
       </div>
       <div class="hero-right">
-        <a id="downloadVsix" class="btn primary btn-wide" href="#" download>Download VSIX</a>
+        <a class="btn primary btn-wide" href="/docs/install.html">DOWNLOAD & INSTALL</a>
         <p id="latestVersion" class="version-text">Fetching latest version…</p>
         <details class="howto">
-          <summary>How to install the VSIX</summary>
-          <ol>
-            <li>Open VS Code.</li>
-            <li>Run: View → Extensions.</li>
-            <li>Click ••• menu → Install from VSIX…</li>
-            <li>Select the downloaded file to install.</li>
-          </ol>
+          <summary>Need help?</summary>
+          <p>See detailed steps on the <a href="/docs/install.html">Install page</a>.</p>
         </details>
       </div>
     </section>
@@ -108,37 +102,20 @@
     const repo = 'LingTeX';
     const latestUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
 
-    async function fetchLatest() {
+    async function fetchLatestTag() {
       const versionEl = document.getElementById('latestVersion');
-      const downloadEl = document.getElementById('downloadVsix');
       try {
         const res = await fetch(latestUrl, { headers: { 'Accept': 'application/vnd.github+json' } });
         if (!res.ok) throw new Error('GitHub API error ' + res.status);
         const json = await res.json();
         const tag = json.tag_name || json.name || '';
         versionEl.textContent = tag ? `Latest: ${tag}` : 'Latest release';
-
-        const asset = (json.assets || []).find(a => a && typeof a.name === 'string' && a.name.toLowerCase().endsWith('.vsix'));
-        if (asset && asset.browser_download_url) {
-          downloadEl.href = asset.browser_download_url;
-          downloadEl.removeAttribute('aria-disabled');
-          downloadEl.classList.remove('disabled');
-        } else {
-          // Fallback to releases page
-          downloadEl.href = `https://github.com/${owner}/${repo}/releases/latest`;
-          downloadEl.textContent = 'Open Releases';
-          downloadEl.classList.add('ghost');
-          versionEl.insertAdjacentHTML('beforeend', ' — VSIX asset not detected');
-        }
       } catch (e) {
         versionEl.textContent = 'Could not fetch latest release';
-        downloadEl.href = `https://github.com/${owner}/${repo}/releases/latest`;
-        downloadEl.textContent = 'Open Releases';
-        downloadEl.classList.add('ghost');
       }
     }
 
-    fetchLatest();
+    fetchLatestTag();
   </script>
 </body>
 </html>
