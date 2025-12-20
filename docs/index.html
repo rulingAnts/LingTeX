@@ -109,7 +109,13 @@
         if (!res.ok) throw new Error('GitHub API error ' + res.status);
         const json = await res.json();
         const tag = json.tag_name || json.name || '';
-        versionEl.textContent = tag ? `Latest: ${tag}` : 'Latest release';
+        const link = json.html_url || `https://github.com/${owner}/${repo}/releases/latest`;
+        const published = json.published_at ? new Date(json.published_at).toISOString().slice(0, 10) : '';
+        if (tag) {
+          versionEl.innerHTML = `Latest: <a href="${link}" target="_blank" rel="noopener">${tag}</a>${published ? ` • Published ${published}` : ''}`;
+        } else {
+          versionEl.textContent = 'Latest release';
+        }
       } catch (e) {
         versionEl.textContent = 'Could not fetch latest release';
       }
