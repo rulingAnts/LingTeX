@@ -61,6 +61,18 @@ body {
 
 .badge img { height: 20px; }
 
+/* Screenshot figure: responsive and contained within card */
+.screenshot { margin: 0; }
+.screenshot img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.25);
+}
+.card .screenshot { overflow: hidden; }
+
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; }
   .two-col { grid-template-columns: 1fr; }
