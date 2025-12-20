@@ -296,10 +296,10 @@
         });
       }
       const ua = navigator.userAgent || navigator.platform || '';
-      let detected = 'mac';
-      if (/Windows/i.test(ua)) detected = 'win';
+      let detected = 'win';
+      if (/Mac|Macintosh|Mac OS X|Mac OS/i.test(ua)) detected = 'mac';
       else if (/Linux|X11|Ubuntu|Fedora|Arch/i.test(ua)) detected = 'linux';
-      else if (/Mac|Macintosh|Mac OS X|Mac OS/i.test(ua)) detected = 'mac';
+      else if (/Windows/i.test(ua)) detected = 'win';
       show(detected);
       switchEl.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-platform]');
