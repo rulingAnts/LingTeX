@@ -1,5 +1,9 @@
 # LingTeX
 
+[![Release](https://img.shields.io/github/v/release/rulingAnts/LingTeX)](https://github.com/rulingAnts/LingTeX/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/rulingAnts/LingTeX/total)](https://github.com/rulingAnts/LingTeX/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+
 LingTeX is a Visual Studio Code extension that adds linguistics authoring helpers for LaTeX. It is designed to complement LaTeX Workshop and LaTeX Utilities.
 
 ## Sidebar Panel
