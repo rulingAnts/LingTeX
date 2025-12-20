@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2 (2025-12-20)
+## 0.2.0 (2025-12-20)
 - Fix: `lingtex.tex.mainFile` input in the Settings panel now updates immediately after browsing, preventing `Save All Settings` from overwriting it with an empty value.
 - Change: Marked LingTeX settings as resource-scoped so per-folder (`WorkspaceFolder`) settings are supported and saved into each folder’s `.vscode/settings.json`.
 - Feature: Added a Folder selector to the Settings panel for multi-root workspaces; switching folders refreshes the panel with that folder’s saved settings.
