@@ -314,6 +314,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <label style="min-width:130px;">Citation key:</label>
             <input type="text" id="figure_cite" placeholder="e.g., sil2011DLM (optional)" />
           </div>
+          <div class="help" style="margin:0 0 8px;">
+            Tip: Set the Main TeX file to ensure image paths are relative to your master document. The [H] float specifier requires <code>\\usepackage{float}</code> in your preamble.
+          </div>
           <div class="row">
             <button class="btn" id="btnImportImageFigure">Choose Image and Insert</button>
           </div>
