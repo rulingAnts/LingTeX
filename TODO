@@ -2,7 +2,10 @@
 
 - [ ] Create VS Code Marketplace publisher (rulingAnts)
 - [ ] Install vsce (`npm i -D @vscode/vsce` or use npx)
-- [ ] Generate Personal Access Token; set `VSCE_PAT` env var
+- [ ] Generate VS Marketplace PAT (Azure DevOps) and set `VSCE_PAT`
+	- Create at https://dev.azure.com → User Settings → Personal Access Tokens → New Token
+	- Scope: Marketplace → Publish; set an expiration you’re comfortable with
+	- Copy the token and either run `npx @vscode/vsce login rulingAnts` or `export VSCE_PAT=YOUR_TOKEN`
 - [ ] Verify package.json fields: `publisher`, `name`, `version`, `engines.vscode`, `categories`, `icon`, `license`, `repository`, `readme`
 - [ ] Add README screenshots and short feature list
 - [ ] Add CHANGELOG entry for each release

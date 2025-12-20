@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LingTeX – Visual Studio Code Extension</title>
+  <meta name="description" content="LingTeX: Linguistics authoring helpers for LaTeX, designed to complement LaTeX Workshop and LaTeX Utilities.">
+  <link rel="icon" href="/resources/lingtex-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/docs/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="/resources/lingtex-icon.png" alt="LingTeX icon" class="brand-icon">
+        <div class="brand-text">
+          <h1 class="title">LingTeX</h1>
+          <p class="subtitle">By <a href="https://github.com/rulingAnts" target="_blank" rel="noopener">rulingAnts</a></p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a class="btn ghost" href="https://github.com/rulingAnts/LingTeX" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn ghost" href="https://github.com/rulingAnts/LingTeX/releases" target="_blank" rel="noopener">Releases</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-left">
+        <img src="/resources/lingtex-icon.png" alt="LingTeX icon" class="hero-icon">
+        <div>
+          <h2 class="hero-title">Linguistics authoring helpers for LaTeX</h2>
+          <p class="hero-desc">Designed to complement LaTeX Workshop & LaTeX Utilities.</p>
+          <div class="hero-badges">
+            <img src="https://img.shields.io/github/v/release/rulingAnts/LingTeX" alt="Latest release">
+            <img src="https://img.shields.io/github/downloads/rulingAnts/LingTeX/total" alt="Downloads">
+            <a class="badge" href="LICENSE" target="_blank" rel="noopener">
+              <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License">
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <a id="downloadVsix" class="btn primary btn-wide" href="#" download>Download VSIX</a>
+        <p id="latestVersion" class="version-text">Fetching latest version…</p>
+        <details class="howto">
+          <summary>How to install the VSIX</summary>
+          <ol>
+            <li>Open VS Code.</li>
+            <li>Run: View → Extensions.</li>
+            <li>Click ••• menu → Install from VSIX…</li>
+            <li>Select the downloaded file to install.</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+
+    <section class="content two-col">
+      <article class="card">
+        <h3>Features</h3>
+        <ul class="features">
+          <li>Panel-first UX with quick actions and templates.</li>
+          <li>TSV → Interlinear (gb4e) with spacing controls.</li>
+          <li>TSV ↔ LaTeX tabularx conversions.</li>
+          <li>LaTeX tabularx → Excel export.</li>
+          <li>Image import → ready-to-compile LaTeX figure block.</li>
+        </ul>
+        <p class="more">See full details in the <a href="https://github.com/rulingAnts/LingTeX#readme" target="_blank" rel="noopener">README</a>.</p>
+      </article>
+      <aside class="card">
+        <h3>Requirements</h3>
+        <ul>
+          <li>Recommended: LaTeX Workshop</li>
+          <li>Recommended: LaTeX Utilities</li>
+        </ul>
+        <h3 style="margin-top:1rem">Settings highlights</h3>
+        <ul>
+          <li><strong>Tables dir:</strong> Default output for LaTeX tables.</li>
+          <li><strong>Figures dir:</strong> Default output for imported images.</li>
+          <li><strong>Main TeX file:</strong> Makes figure paths relative.</li>
+          <li><strong>Excel export location:</strong> Downloads, Documents, Workspace, or Prompt.</li>
+          <li><strong>Interlinear spacing:</strong> `\\openup` amount for gloss lines.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="content">
+      <article class="card">
+        <h3>Screenshots</h3>
+        <p>Coming soon.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© rulingAnts — LingTeX. This is a user-facing page for direct VSIX downloads.</p>
+      <p><a href="https://github.com/rulingAnts/LingTeX" target="_blank" rel="noopener">Source on GitHub</a></p>
+    </div>
+  </footer>
+
+  <script>
+    const owner = 'rulingAnts';
+    const repo = 'LingTeX';
+    const latestUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+
+    async function fetchLatest() {
+      const versionEl = document.getElementById('latestVersion');
+      const downloadEl = document.getElementById('downloadVsix');
+      try {
+        const res = await fetch(latestUrl, { headers: { 'Accept': 'application/vnd.github+json' } });
+        if (!res.ok) throw new Error('GitHub API error ' + res.status);
+        const json = await res.json();
+        const tag = json.tag_name || json.name || '';
+        versionEl.textContent = tag ? `Latest: ${tag}` : 'Latest release';
+
+        const asset = (json.assets || []).find(a => a && typeof a.name === 'string' && a.name.toLowerCase().endsWith('.vsix'));
+        if (asset && asset.browser_download_url) {
+          downloadEl.href = asset.browser_download_url;
+          downloadEl.removeAttribute('aria-disabled');
+          downloadEl.classList.remove('disabled');
+        } else {
+          // Fallback to releases page
+          downloadEl.href = `https://github.com/${owner}/${repo}/releases/latest`;
+          downloadEl.textContent = 'Open Releases';
+          downloadEl.classList.add('ghost');
+          versionEl.insertAdjacentHTML('beforeend', ' — VSIX asset not detected');
+        }
+      } catch (e) {
+        versionEl.textContent = 'Could not fetch latest release';
+        downloadEl.href = `https://github.com/${owner}/${repo}/releases/latest`;
+        downloadEl.textContent = 'Open Releases';
+        downloadEl.classList.add('ghost');
+      }
+    }
+
+    fetchLatest();
+  </script>
+</body>
+</html>
