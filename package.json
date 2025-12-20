@@ -153,6 +153,11 @@
           "default": "${workspaceFolder}/misc/figures",
           "description": "Default output directory for imported figure images saved into the workspace."
         },
+        "lingtex.tex.mainFile": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the main .tex file. When set, image figure paths are made relative to this file (use ${workspaceFolder}/main.tex if helpful)."
+        },
         "lingtex.excel.outputLocation": {
           "type": "string",
           "enum": [
