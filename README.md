@@ -20,6 +20,10 @@ LingTeX now uses a panel-only UX. Commands are hidden from the Command Palette; 
 
 - `lingtex.figure.outputDir`: Default output directory for images imported as figures (e.g., `${workspaceFolder}/misc/figures`).
 - `lingtex.tex.mainFile`: Path to the main `.tex` file. When set, imported image paths are computed relative to this file (e.g., `${workspaceFolder}/main.tex`).
+- `lingtex.interlinear.openupGlossAmount`: Interlinear line spacing passed to `\openup` before gloss lines (e.g., `1em` or `6pt`). Spacing before/after the free translation is automatically set to 50% of this value.
+
+Panel tips:
+- Use “Browse Tables Dir…” and “Browse Figures Dir…” to pick folders. Selected paths inside the repo are saved as `${workspaceFolder}/…` for portability.
 
 ## Development
 - Run and debug via the provided launch configuration (Run Extension).
@@ -33,6 +37,7 @@ Use the LingTeX panel section “Image → LaTeX Figure” to import an image an
 - Set “Figures output dir” (default: `${workspaceFolder}/misc/figures`).
 - Set “Main TeX file” (optional). Paths in the inserted `\includegraphics{...}` are made relative to this file. This ensures correct paths when inserting into files included via `\input{...}`.
 - Optional: enter a Caption and a Citation key (used in `\parencite{...}`).
+ - You can also click “Browse Figures Dir…” in Settings to select a folder.
 
 ### Output format
 The inserted snippet uses a compact format:

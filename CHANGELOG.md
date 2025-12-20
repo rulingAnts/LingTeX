@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 (2025-12-20)
 - Image → Figure: Output format now uses `[H]`, `\centering`, and `\includegraphics[width=\textwidth]{...}` with `\label{fig:...}`. Optional `\parencite{...}` appended inside `\caption{...}` when a citation key is provided.
 - Paths in inserted figures are computed relative to `lingtex.tex.mainFile` (if set), ensuring correctness when inserting into files included via `\input{...}`.
 - Panel: Added inputs for Caption and Citation key, plus a tip noting that `[H]` requires `\usepackage{float}` and how the main TeX file affects path resolution.
 - Settings: Added `lingtex.tex.mainFile` to configure the main document.
+- Interlinear: simplified spacing controls to a single "Interlinear line spacing" (`lingtex.interlinear.openupGlossAmount`); before/after translation spacing auto-calculated to 50%.
+- Settings: Added "Browse …" buttons to pick Tables/Figures output directories via a folder picker; selected repo-relative paths saved as `${workspaceFolder}/…`.
 
 ## 0.1.0 (Pre-release)
 - Panel: multiple collapsible sections; theme normalized to VS Code.

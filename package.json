@@ -2,7 +2,7 @@
   "name": "lingtex",
   "displayName": "LingTeX",
   "description": "Linguistics authoring helpers for LaTeX (works with LaTeX Workshop & LaTeX Utilities).",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "rulingAnts",
   "repository": {
     "type": "git",
@@ -209,17 +209,7 @@
         "lingtex.interlinear.openupGlossAmount": {
           "type": "string",
           "default": "1em",
-          "description": "Amount passed to \\openup before gloss lines (e.g., 1em or 6pt)."
-        },
-        "lingtex.interlinear.openupBeforeTranslationAmount": {
-          "type": "string",
-          "default": "-0.5em",
-          "description": "Amount passed to \\openup right before the translation (e.g., -0.5em)."
-        },
-        "lingtex.interlinear.openupAfterTranslationAmount": {
-          "type": "string",
-          "default": "-0.5em",
-          "description": "Amount passed to \\openup immediately after the translation line (e.g., -0.5em)."
+          "description": "Interlinear line spacing: amount passed to \\openup before gloss lines (e.g., 1em or 6pt). Spacing before/after translation is automatically set to 50% of this value."
         }
       }
     }

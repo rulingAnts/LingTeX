@@ -16,9 +16,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       inter_afterSkip: cfg.get<string>('interlinear.afterSkip', 'medskip'),
       inter_useOpenup: cfg.get<boolean>('interlinear.useOpenup', true),
       inter_openupGlossAmount: cfg.get<string>('interlinear.openupGlossAmount', '1em'),
-      inter_openupBeforeTranslationAmount: cfg.get<string>('interlinear.openupBeforeTranslationAmount', '-0.5em'),
-      inter_openupAfterTranslationAmount: cfg.get<string>('interlinear.openupAfterTranslationAmount', '-0.5em')
-      ,figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures')
+      figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures')
       ,tex_mainFile: cfg.get<string>('tex.mainFile', '')
     };
     webviewView.webview.html = this.getHtml(webviewView.webview, state);
@@ -32,7 +30,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         if (msg?.type === 'importImageFigure') {
           // Resolve output directory from message or config
           const cfg = vscode.workspace.getConfiguration('lingtex');
-          let outDir = String(msg.outputDir || cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures') || '').trim();
+          let outDir = String(cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures') || '').trim();
           const wf = vscode.workspace.workspaceFolders?.[0];
           const rootFsPath = wf?.uri.fsPath || '';
           if (!outDir) { vscode.window.showErrorMessage('LingTeX: Please set a figures output directory.'); return; }
@@ -192,6 +190,31 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           vscode.window.showInformationMessage('LingTeX: Settings updated');
           return;
         }
+        if (msg?.type === 'chooseFolder' && typeof msg.key === 'string') {
+          const key = String(msg.key);
+          const wf = vscode.workspace.workspaceFolders?.[0];
+          const rootUri = wf?.uri;
+          const picks = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            defaultUri: rootUri
+          });
+          if (!picks || !picks.length) return;
+          const chosen = picks[0];
+          const rootFsPath = wf?.uri.fsPath || '';
+          let storeValue = chosen.fsPath;
+          if (rootFsPath && storeValue.startsWith(rootFsPath)) {
+            const rel = storeValue.slice(rootFsPath.length).replace(/^\//, '').split(path.sep).join('/');
+            storeValue = '${workspaceFolder}/' + rel;
+          }
+          const cfgRoot = vscode.workspace.getConfiguration('lingtex');
+          const sub = key.split('.').slice(1).join('.');
+          await cfgRoot.update(sub, storeValue, vscode.ConfigurationTarget.Workspace);
+          webviewView.webview.postMessage({ type: 'folderChosen', key, value: storeValue });
+          vscode.window.showInformationMessage('LingTeX: Folder selected and setting updated');
+          return;
+        }
       } catch (err: any) {
         vscode.window.showErrorMessage(`LingTeX Panel error: ${err?.message ?? String(err)}`);
       }
@@ -297,11 +320,6 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             If LaTeX reports the figure is too large, adjust the \includegraphics options (e.g., width/height/keepaspectratio) until it fits. The compiler might fail to compile until you fix it. Quick reference: <a href="https://www.overleaf.com/learn/latex/Inserting_Images" target="_blank">Overleaf – Inserting Images</a>.
           </div>
           <div class="row">
-            <label style="min-width:130px;">Figures output dir:</label>
-            <input type="text" id="figure_outputDir" value="${this.escapeAttr(state.figure_outputDir)}" />
-            <button class="btn" data-save="figure_outputDir">Save</button>
-          </div>
-          <div class="row">
             <label style="min-width:130px;">Main TeX file:</label>
             <input type="text" id="tex_mainFile" value="${this.escapeAttr(state.tex_mainFile)}" placeholder="e.g., \${workspaceFolder}/main.tex" />
             <button class="btn" data-save="tex_mainFile">Save</button>
@@ -327,6 +345,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           <div class="row">
             <label style="min-width:130px;">Tables output dir:</label>
             <input type="text" id="tables_outputDir" value="${this.escapeAttr(state.tables_outputDir)}" />
+          </div>
+          <div class="row">
+            <label style="min-width:130px;">Figures output dir:</label>
+            <input type="text" id="figure_outputDir" value="${this.escapeAttr(state.figure_outputDir)}" />
           </div>
           <div class="row">
             <label style="min-width:130px;">Excel output location:</label>
@@ -358,14 +380,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <label style="min-width:130px;">\\openup gloss amount:</label>
             <input type="text" id="inter_openupGlossAmount" value="${this.escapeAttr(state.inter_openupGlossAmount)}" placeholder="e.g., 1em or 6pt" />
           </div>
-          <div class="row">
-            <label style="min-width:130px;">\\openup before translation:</label>
-            <input type="text" id="inter_openupBeforeTranslationAmount" value="${this.escapeAttr(state.inter_openupBeforeTranslationAmount)}" placeholder="e.g., -0.5em" />
-          </div>
-          <div class="row">
-            <label style="min-width:130px;">\\openup after translation:</label>
-            <input type="text" id="inter_openupAfterTranslationAmount" value="${this.escapeAttr(state.inter_openupAfterTranslationAmount)}" placeholder="e.g., -0.5em" />
-          </div>
+          <div class="help" style="margin:0 0 8px;">Interlinear line spacing controls gloss lines; spacing before/after translation is auto-set to 50% of this value.</div>
           <div class="row">
             <button class="btn" data-save="tables_outputDir">Save Tables Dir</button>
             <button class="btn" data-save="excel_outputLocation">Save Excel Location</button>
@@ -374,8 +389,11 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <button class="btn" data-save="inter_afterSkip">Save After Spacing</button>
             <button class="btn" data-save="inter_useOpenup">Save openup</button>
             <button class="btn" data-save="inter_openupGlossAmount">Save gloss openup</button>
-            <button class="btn" data-save="inter_openupBeforeTranslationAmount">Save before-translation openup</button>
-            <button class="btn" data-save="inter_openupAfterTranslationAmount">Save after-translation openup</button>
+          </div>
+
+          <div class="row">
+            <button class="btn" id="btnBrowseTablesOutputDir">Browse Tables Dir…</button>
+            <button class="btn" id="btnBrowseFiguresOutputDir">Browse Figures Dir…</button>
           </div>
         </details>
 
@@ -394,11 +412,25 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             if (!addLabel.checked) labelInput.value = '';
           });
           document.getElementById('btnImportImageFigure').addEventListener('click', () => {
-            const outDir = (document.getElementById('figure_outputDir').value || '').trim();
             const caption = (document.getElementById('figure_caption').value || '').trim();
             const citeKey = (document.getElementById('figure_cite').value || '').trim();
-            vscode.postMessage({ type: 'importImageFigure', outputDir: outDir, caption, citeKey });
+            vscode.postMessage({ type: 'importImageFigure', caption, citeKey });
           });
+                    document.getElementById('btnBrowseTablesOutputDir').addEventListener('click', () => {
+                      vscode.postMessage({ type: 'chooseFolder', key: 'lingtex.tables.outputDir' });
+                    });
+                    document.getElementById('btnBrowseFiguresOutputDir').addEventListener('click', () => {
+                      vscode.postMessage({ type: 'chooseFolder', key: 'lingtex.figure.outputDir' });
+                    });
+
+                    window.addEventListener('message', (ev) => {
+                      const msg = ev.data;
+                      if (msg && msg.type === 'folderChosen' && typeof msg.key === 'string' && typeof msg.value === 'string') {
+                        const id = msg.key.split('.').slice(1).join('_');
+                        const el = document.getElementById(id);
+                        if (el) el.value = msg.value;
+                      }
+                    });
           document.getElementById('btnGenerateInterlinear').addEventListener('click', () => {
             const tsv = (document.getElementById('tsvInput').value || '').trim();
             const wantLabel = !!(document.getElementById('addLabel').checked);
@@ -427,8 +459,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               if (key === 'inter_afterSkip') configKey = 'lingtex.interlinear.afterSkip';
               if (key === 'inter_useOpenup') configKey = 'lingtex.interlinear.useOpenup';
               if (key === 'inter_openupGlossAmount') configKey = 'lingtex.interlinear.openupGlossAmount';
-              if (key === 'inter_openupBeforeTranslationAmount') configKey = 'lingtex.interlinear.openupBeforeTranslationAmount';
-              if (key === 'inter_openupAfterTranslationAmount') configKey = 'lingtex.interlinear.openupAfterTranslationAmount';
+          
               vscode.postMessage({ type: 'updateSetting', key: configKey, value });
             });
           });
@@ -593,8 +624,18 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
     const cfg = vscode.workspace.getConfiguration('lingtex');
     const useOpenup = !!cfg.get<boolean>('interlinear.useOpenup', true);
     const openupGloss = (cfg.get<string>('interlinear.openupGlossAmount', '1em') || '1em').trim();
-    const openupBeforeTr = (cfg.get<string>('interlinear.openupBeforeTranslationAmount', '-0.5em') || '-0.5em').trim();
-    const openupAfterTr = (cfg.get<string>('interlinear.openupAfterTranslationAmount', '-0.5em') || '-0.5em').trim();
+    const halfOf = (amount: string): string | null => {
+      const m = amount.match(/^\s*(-?\d+(?:\.\d+)?)\s*([a-zA-Z]+)\s*$/);
+      if (!m) return null;
+      const num = parseFloat(m[1]);
+      const unit = m[2];
+      if (!isFinite(num)) return null;
+      const half = Math.abs(num) * 0.5;
+      const val = (half % 1 === 0) ? String(half) : String(half);
+      return '-' + val + unit;
+    };
+    const openupBeforeTr = halfOf(openupGloss) || '-0.5em';
+    const openupAfterTr = halfOf(openupGloss) || '-0.5em';
     if (!lines.length) {
       const transOnly = glt ? `\\glt ${this.latexEscape(glt)}` : '';
       return transOnly || '% (no aligned interlinear lines)';
