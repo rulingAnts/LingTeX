@@ -1,13 +1,10 @@
-\begin{exe}
-\ex
-\end{exe}
-
 .vscode/
 .vscode-test/
 .github/
 .git/
 docs/
 test/
+test-workspaces/**
 src/
 **/*.ts
 **/*.map
