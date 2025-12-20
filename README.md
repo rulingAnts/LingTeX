@@ -15,7 +15,10 @@ LingTeX is a Visual Studio Code extension that adds linguistics authoring helper
 LingTeX now uses a panel-only UX. Commands are hidden from the Command Palette; launch actions from the LingTeX panel in the Activity Bar. Title bar actions (Generate/Cancel) appear contextually when using TSV templates.
 
 ## Requirements
+- Visual Studio Code (required): download from https://code.visualstudio.com/
 - Recommended: LaTeX Workshop, LaTeX Utilities
+
+Tip (macOS): to use the `code` CLI for VSIX installs, run Command Palette → “Shell Command: Install 'code' command in PATH”.
 
 ## Extension Settings
 - `lingtex.tables.outputDir`: Default output directory for generated LaTeX tables.

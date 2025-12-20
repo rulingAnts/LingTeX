@@ -7,6 +7,9 @@ This folder hosts the user-facing website that looks similar to a Visual Studio 
 - Provides a “Download VSIX” button that automatically points to the latest release asset by calling the GitHub Releases API.
 - Falls back to the Releases page if a VSIX asset is not found.
 
+## Prerequisite
+LingTeX is a Visual Studio Code extension. The website now highlights that VS Code must be installed first, with links and brief OS-specific guidance on the Install page.
+
 ## Enable GitHub Pages
 1. Open the repository on GitHub → Settings → Pages.
 2. Under “Build and deployment”, set:
