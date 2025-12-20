@@ -6,6 +6,118 @@
 
 LingTeX is a Visual Studio Code extension that adds linguistics authoring helpers for LaTeX. It is designed to complement LaTeX Workshop and LaTeX Utilities.
 
+## Installation
+
+For full, platform-specific instructions with auto-detected tabs, see the website: [docs/install.html](docs/install.html).
+
+### Step 1 — Install LaTeX (no GUI)
+We recommend TeX Live/MacTeX without a GUI editor and installing required packages for linguistics papers. Your template likely uses XeLaTeX and depends on packages such as `langsci-gb4e`, `graphicx`, `tabularx`, `biblatex` (with `biber`), `glossaries-extra`, `hyperref`, `cleveref`, and others listed below.
+
+#### macOS (MacTeX/BasicTeX)
+- BasicTeX (smaller, no GUI): https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg
+- Full MacTeX: https://tug.org/mactex/
+- Install required tools and packages with `tlmgr`:
+
+```
+sudo tlmgr update --self
+sudo tlmgr install latexmk xetex biber \
+	datetime2 footmisc comment geometry fontspec \
+	langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+	setspace enumitem ragged2e needspace placeins float longtable \
+	tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+	caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape
+```
+
+- Verify:
+
+```
+xelatex --version
+biber --version
+latexmk -v
+```
+
+#### Windows (TeX Live)
+- Installer: https://tug.org/texlive/windows.html (choose a scheme without GUI editors)
+- Open “TeX Live Command Prompt” and run:
+
+```
+tlmgr update --self
+tlmgr install latexmk xetex biber \
+	datetime2 footmisc comment geometry fontspec \
+	langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+	setspace enumitem ragged2e needspace placeins float longtable \
+	tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+	caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape
+```
+
+- Verify:
+
+```
+xelatex --version
+biber --version
+latexmk -v
+```
+
+#### Linux
+- Recommended: TeX Live (current) via Quick Install: https://tug.org/texlive/quickinstall.html
+- Then install required packages:
+
+```
+tlmgr update --self
+tlmgr install latexmk xetex biber \
+	datetime2 footmisc comment geometry fontspec \
+	langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+	setspace enumitem ragged2e needspace placeins float longtable \
+	tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+	caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape
+```
+
+- Alternative (distro packages; versions may be older):
+
+Debian/Ubuntu
+```
+sudo apt update
+sudo apt install -y texlive texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex biber latexmk
+```
+
+Fedora
+```
+sudo dnf install -y texlive-scheme-medium texlive-biber latexmk
+```
+
+Arch
+```
+sudo pacman -S --needed texlive-most biber latexmk
+```
+
+If a package is reported missing during compile, install it via your package manager or `tlmgr`.
+
+### Step 2 — Install Visual Studio Code and LaTeX extensions
+- VS Code: https://code.visualstudio.com/
+- LaTeX Workshop: https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop
+- LaTeX Utilities: https://marketplace.visualstudio.com/items?itemName=tecosaur.latex-utilities
+
+CLI install:
+```
+code --install-extension James-Yu.latex-workshop
+code --install-extension tecosaur.latex-utilities
+```
+
+Tip (macOS): Command Palette → “Shell Command: Install 'code' command in PATH” to enable the `code` CLI.
+
+To build with XeLaTeX in LaTeX Workshop: Command Palette → “LaTeX Workshop: Build with recipe” → choose “latexmk (xelatex)”. Ensure `latexmk` and `xelatex` are installed (Step 1).
+
+### Step 3 — Install LingTeX from VSIX
+- Download the latest VSIX: https://github.com/rulingAnts/LingTeX/releases/latest
+- Install from VS Code: Extensions view → ••• → “Install from VSIX…” → pick the downloaded file.
+- Or install via CLI:
+
+```
+code --install-extension /path/to/LingTeX-x.y.z.vsix
+```
+
+Troubleshooting: If VS Code reports an invalid VSIX, re-download from Releases. For bibliography, ensure `biber` is installed. For glossaries with `glossaries-extra`, prefer `\makenoidxglossaries` (as used in many templates).
+
 ## Sidebar Panel
 - Access the LingTeX panel from the Activity Bar (left sidebar) using the LingTeX icon.
 - The panel provides buttons for all features and simple forms for common options (e.g., TSV → Interlinear output mode, Excel export destination).
