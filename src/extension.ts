@@ -5,6 +5,7 @@ import {
   registerTabularxToExcelCommand,
   registerConvertXLingPaperXmlToExcelCommand,
   registerTsvToTabularxCommand,
+  registerAutoPreviewPane,
 } from './features';
 import { LingTeXViewProvider } from './panel/lingtexPanel';
 
@@ -55,11 +56,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerTabularxToExcelCommand(context);
   registerConvertXLingPaperXmlToExcelCommand(context);
   registerTsvToTabularxCommand(context);
-  // Auto Preview Pane enforcement
-  try {
-    const { registerAutoPreviewPane } = await import('./features');
-    registerAutoPreviewPane(context);
-  } catch {}
+  registerAutoPreviewPane(context);
 
   // Placeholder stubs for other commands
   const stubs: Array<[string, string]> = [
