@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+// Track recently opened tabs so we can preserve focus on them after moving
+const recentOpened = new Map<string, number>();
 
 function resolvePathInFolder(raw: string | undefined, rootFsPath: string): string {
   const val = String(raw || '').trim();
@@ -88,12 +90,16 @@ async function enforceLayout(): Promise<void> {
         const u = tabUri(tb);
         const isMainPdf = !!u && u.fsPath === mainPdfPath;
         if (!isMainPdf && u) {
-          // Activate the bottom tab, move it up, then restore original focus
+          const openedAt = recentOpened.get(u.fsPath) || 0;
+          const isRecent = openedAt > 0 && (Date.now() - openedAt) < 2000;
+          // Focus the bottom tab, then move to above group
           await openUriInColumn(u, vscode.ViewColumn.Two, false);
           await vscode.commands.executeCommand('workbench.action.moveEditorToAboveGroup');
-          if (origUri) {
+          if (!isRecent && origUri) {
+            // Restore original focus for existing tabs
             await openUriInColumn(origUri, origCol, false);
           }
+          // For recent tabs, keep focus on the moved tab (now on top)
         }
       }
     }
@@ -101,6 +107,13 @@ async function enforceLayout(): Promise<void> {
   // Set a short cooldown to avoid immediate re-enforcement on tab-change events caused by our moves
   cooldownUntil = Date.now() + 400;
   isEnforcing = false;
+  // Prune old entries from recentOpened
+  try {
+    const now2 = Date.now();
+    for (const [k, t] of Array.from(recentOpened.entries())) {
+      if ((now2 - t) > 5000) recentOpened.delete(k);
+    }
+  } catch {}
 }
 
 export function registerAutoPreviewPane(context: vscode.ExtensionContext): void {
@@ -119,6 +132,13 @@ export function registerAutoPreviewPane(context: vscode.ExtensionContext): void 
       try {
         const opened = Array.isArray(ev?.opened) ? ev.opened.length : 0;
         const closed = Array.isArray(ev?.closed) ? ev.closed.length : 0;
+        // Record recently opened URIs
+        if (Array.isArray(ev?.opened)) {
+          for (const tb of ev.opened) {
+            const u = tabUri(tb);
+            if (u) recentOpened.set(u.fsPath, Date.now());
+          }
+        }
         if (opened > 0 || closed > 0) schedule();
       } catch {
         // If event shape is unknown, still schedule conservatively
