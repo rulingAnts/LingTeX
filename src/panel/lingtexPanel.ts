@@ -9,6 +9,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     webviewView.webview.options = { enableScripts: true };
     const folders = vscode.workspace.workspaceFolders || [];
+    // Initialize selected folder index from workspace-level setting
+    const cfgWindow = vscode.workspace.getConfiguration('lingtex');
+    const savedIdx = cfgWindow.get<number>('ui.selectedFolderIndex', 0) ?? 0;
+    this.currentFolderIndex = Math.max(0, Math.min((folders.length || 1) - 1, Number(savedIdx) || 0));
     const scopeUri = folders[this.currentFolderIndex]?.uri;
     const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
     const state = {
@@ -54,6 +58,12 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
     };
     const cfgDisposable = vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('lingtex')) {
+        // If the selected folder index changed at the workspace level, sync it
+        if (e.affectsConfiguration('lingtex.ui.selectedFolderIndex')) {
+          const idx = vscode.workspace.getConfiguration('lingtex').get<number>('ui.selectedFolderIndex', this.currentFolderIndex) ?? this.currentFolderIndex;
+          const len = vscode.workspace.workspaceFolders?.length || 0;
+          this.currentFolderIndex = Math.max(0, Math.min(Math.max(0, len - 1), Number(idx) || 0));
+        }
         refreshFromConfig();
       }
     });
@@ -61,6 +71,11 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
     const wfDisposable = vscode.workspace.onDidChangeWorkspaceFolders(() => {
       const len = vscode.workspace.workspaceFolders?.length || 0;
       if (this.currentFolderIndex >= len) this.currentFolderIndex = Math.max(0, len - 1);
+      // Persist clamped index back to workspace settings
+      try {
+        const cfgWin = vscode.workspace.getConfiguration('lingtex');
+        cfgWin.update('ui.selectedFolderIndex', this.currentFolderIndex, vscode.ConfigurationTarget.Workspace);
+      } catch {}
       refreshFromConfig();
     });
     this.context.subscriptions.push(wfDisposable);
@@ -74,6 +89,8 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         if (msg?.type === 'selectFolder' && typeof msg.index === 'number') {
           const i = Math.max(0, Math.min((vscode.workspace.workspaceFolders?.length || 1) - 1, msg.index));
           this.currentFolderIndex = i;
+          // Save workspace-level selected folder index
+          await vscode.workspace.getConfiguration('lingtex').update('ui.selectedFolderIndex', i, vscode.ConfigurationTarget.Workspace);
           const scopeUri = vscode.workspace.workspaceFolders?.[i]?.uri;
           const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
           const state = {

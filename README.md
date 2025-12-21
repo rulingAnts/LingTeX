@@ -141,6 +141,7 @@ Tip (macOS): to use the `code` CLI for VSIX installs, run Command Palette → �
 - `lingtex.tex.mainFile`: Path to the main `.tex` file. When set, imported image paths are computed relative to this file (e.g., `${workspaceFolder}/main.tex`).
 - `lingtex.tex.mainPdf`: Path to your primary compiled PDF (e.g., `${workspaceFolder}/build/main.pdf`). Used by the panel and future features to open/reference the document.
 - `lingtex.interlinear.openupGlossAmount`: Interlinear line spacing passed to `\openup` before gloss lines (e.g., `1em` or `6pt`). Spacing before/after the free translation is automatically set to 50% of this value.
+ - `lingtex.ui.selectedFolderIndex`: Workspace-level index of the selected root folder for the LingTeX panel.
 
 Panel tips:
 - Use “Browse Tables Dir…” and “Browse Figures Dir…” to pick folders. Selected paths inside the repo are saved as `${workspaceFolder}/…` for portability.
@@ -148,6 +149,7 @@ Panel tips:
 
 ### Per-Folder Settings (Multi-root)
 - Settings are scoped to the selected workspace folder. Use the Folder dropdown in the Settings panel to switch which folder you’re editing.
+ - The selected root folder is remembered per workspace via `lingtex.ui.selectedFolderIndex`.
 - When you browse for folders/files inside the selected workspace folder, LingTeX saves them as `${workspaceFolder}/…` to stay portable. Outside-of-repo picks are saved as absolute paths.
 - Each root-level folder maintains its own `.vscode/settings.json`. Switching folders refreshes the panel to show that folder’s saved values.
 - If the extension’s settings schema changes (e.g., after updates), reload the VS Code window so new scopes and defaults take effect.

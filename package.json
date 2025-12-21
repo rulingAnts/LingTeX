@@ -228,6 +228,13 @@
           "default": "1em",
           "description": "Interlinear line spacing: amount passed to \\openup before gloss lines (e.g., 1em or 6pt). Spacing before/after translation is automatically set to 50% of this value.",
           "scope": "resource"
+        },
+        "lingtex.ui.selectedFolderIndex": {
+          "type": "number",
+          "default": 0,
+          "description": "Selected root folder index for the LingTeX panel (workspace-level).",
+          "scope": "window",
+          "minimum": 0
         }
       }
     }
