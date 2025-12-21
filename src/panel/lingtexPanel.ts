@@ -15,6 +15,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
     this.currentFolderIndex = Math.max(0, Math.min((folders.length || 1) - 1, Number(savedIdx) || 0));
     const scopeUri = folders[this.currentFolderIndex]?.uri;
     const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
+    const hasWorkshop = !!vscode.extensions.getExtension('James-Yu.latex-workshop');
+    const hasUtilities = !!vscode.extensions.getExtension('tecosaur.latex-utilities');
+    const depsOk = hasWorkshop && hasUtilities;
     const state = {
       tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
       excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
@@ -29,8 +32,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       ,preview_autoPreviewPane: cfg.get<boolean>('preview.autoPreviewPane', false)
       ,folders: folders.map(f => ({ name: f.name, path: f.uri.fsPath }))
       ,selectedFolderIndex: this.currentFolderIndex
+      ,depsOk
+      ,missing: { workshop: !hasWorkshop, utilities: !hasUtilities }
     };
-    webviewView.webview.html = this.getHtml(webviewView.webview, state);
+    webviewView.webview.html = depsOk ? this.getHtml(webviewView.webview, state) : this.getHtmlMissing(webviewView.webview, state);
 
     // Auto-refresh panel when settings or workspace folders change
     const refreshFromConfig = () => {
@@ -38,6 +43,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         const folders2 = vscode.workspace.workspaceFolders || [];
         const scopeUri2 = folders2[this.currentFolderIndex]?.uri;
         const cfg2 = vscode.workspace.getConfiguration('lingtex', scopeUri2);
+        const hasWorkshop2 = !!vscode.extensions.getExtension('James-Yu.latex-workshop');
+        const hasUtilities2 = !!vscode.extensions.getExtension('tecosaur.latex-utilities');
+        const depsOk2 = hasWorkshop2 && hasUtilities2;
         const newState = {
           tables_outputDir: cfg2.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
           excel_outputLocation: cfg2.get<string>('excel.outputLocation', 'downloads'),
@@ -51,9 +59,11 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           tex_mainPdf: cfg2.get<string>('tex.mainPdf', ''),
           preview_autoPreviewPane: cfg2.get<boolean>('preview.autoPreviewPane', false),
           folders: folders2.map(f => ({ name: f.name, path: f.uri.fsPath })),
-          selectedFolderIndex: this.currentFolderIndex
+          selectedFolderIndex: this.currentFolderIndex,
+          depsOk: depsOk2,
+          missing: { workshop: !hasWorkshop2, utilities: !hasUtilities2 }
         };
-        webviewView.webview.html = this.getHtml(webviewView.webview, newState);
+        webviewView.webview.html = depsOk2 ? this.getHtml(webviewView.webview, newState) : this.getHtmlMissing(webviewView.webview, newState);
       } catch (e) {
         // Non-fatal; ignore refresh errors
       }
@@ -85,7 +95,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       try {
         if (msg?.type === 'runCommand' && typeof msg.command === 'string') {
-          await vscode.commands.executeCommand(msg.command);
+          const args = Array.isArray(msg.args) ? msg.args : undefined;
+          if (args) await vscode.commands.executeCommand(msg.command, ...args);
+          else await vscode.commands.executeCommand(msg.command);
           return;
         }
         if (msg?.type === 'selectFolder' && typeof msg.index === 'number') {
@@ -95,6 +107,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           await vscode.workspace.getConfiguration('lingtex').update('ui.selectedFolderIndex', i, vscode.ConfigurationTarget.Workspace);
           const scopeUri = vscode.workspace.workspaceFolders?.[i]?.uri;
           const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
+          const hasWorkshop3 = !!vscode.extensions.getExtension('James-Yu.latex-workshop');
+          const hasUtilities3 = !!vscode.extensions.getExtension('tecosaur.latex-utilities');
+          const depsOk3 = hasWorkshop3 && hasUtilities3;
           const state = {
             tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
             excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
@@ -108,9 +123,11 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             tex_mainPdf: cfg.get<string>('tex.mainPdf', ''),
             preview_autoPreviewPane: cfg.get<boolean>('preview.autoPreviewPane', false),
             folders: (vscode.workspace.workspaceFolders||[]).map(f => ({ name: f.name, path: f.uri.fsPath })),
-            selectedFolderIndex: i
+            selectedFolderIndex: i,
+            depsOk: depsOk3,
+            missing: { workshop: !hasWorkshop3, utilities: !hasUtilities3 }
           };
-          webviewView.webview.html = this.getHtml(webviewView.webview, state);
+          webviewView.webview.html = depsOk3 ? this.getHtml(webviewView.webview, state) : this.getHtmlMissing(webviewView.webview, state);
           return;
         }
         if (msg?.type === 'importImageFigure') {
@@ -406,6 +423,23 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         LingTeX is a VSCode extension for linguists working with LaTeX. It provides tools for generating interlinear glosses, LaTeX tables from TSV data, and inserting figures. More info: <a href="https://rulingants.github.io/LingTeX">GitHub</a>.
         </div>
 
+        ${state.depsOk ? '' : `
+        <div style="border:1px solid var(--vscode-input-border); background: var(--vscode-input-background); padding:12px; margin:12px 0;">
+          <strong>Required extensions missing</strong>
+          <div class="help" style="margin-top:6px;">LingTeX works best alongside LaTeX tools. Please install:
+            <ul style="margin:8px 0 0 18px;">
+              ${state.missing?.workshop ? '<li><a href="vscode:extension/James-Yu.latex-workshop" target="_blank">LaTeX Workshop</a></li>' : ''}
+              ${state.missing?.utilities ? '<li><a href="vscode:extension/tecosaur.latex-utilities" target="_blank">LaTeX Utilities</a></li>' : ''}
+            </ul>
+          </div>
+          <div class="help" style="margin-top:8px;">After installing, reload the window to see the full panel.</div>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button class="btn" data-cmd="workbench.extensions.search" data-args='["@installed latex"]'>Open Extensions</button>
+          </div>
+        </div>
+        `}
+
+        <div id="ltx_controls" style="${state.depsOk ? '' : 'display:none;'}">
         <details>
           <summary><strong>Paste FLEx Interlinear</strong></summary>
           <div class="help" style="margin:4px 0 8px;">
@@ -548,6 +582,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <button class="btn" id="btnResetDefaults">Reset Defaults</button>
           </div>
         </details>
+        </div>
 
         <script>
           const vscode = acquireVsCodeApi();
@@ -561,7 +596,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           document.querySelectorAll('[data-cmd]').forEach(btn => {
             btn.addEventListener('click', () => {
               const command = btn.getAttribute('data-cmd');
-              vscode.postMessage({ type: 'runCommand', command });
+              let args = undefined;
+              try { args = JSON.parse(btn.getAttribute('data-args')||''); } catch {}
+              vscode.postMessage({ type: 'runCommand', command, args });
             });
           });
           const addLabel = document.getElementById('addLabel');
@@ -657,6 +694,55 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             document.getElementById('tex_mainPdf').value = entries['lingtex.tex.mainPdf'];
             document.getElementById('preview_autoPreviewPane').checked = entries['lingtex.preview.autoPreviewPane'];
             vscode.postMessage({ type: 'updateSettings', entries });
+          });
+        </script>
+      </body>
+      </html>
+    `;
+  }
+
+  private getHtmlMissing(webview: vscode.Webview, state: any): string {
+    const iconUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'resources', 'lingtex-icon.svg'));
+    const style = `
+      html, body { height: 100%; }
+      body { font-family: var(--vscode-font-family); padding: 8px; height: 100vh; background: var(--vscode-sideBar-background); color: var(--vscode-foreground); }
+      .logo { display:block; height: 95px; margin: 0 auto 6px; clip-path: inset(30% 0 25% 0); }
+      .btn { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 6px 8px; border-radius: 4px; }
+      .btn:hover { background: var(--vscode-button-hoverBackground); }
+      .help { color: var(--vscode-descriptionForeground); font-size: 12px; }
+    `;
+    const workshopLink = '<a href="https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop" target="_blank">LaTeX Workshop</a>';
+    const utilitiesLink = '<a href="https://marketplace.visualstudio.com/items?itemName=tecosaur.latex-utilities" target="_blank">LaTeX Utilities</a>';
+    const missingList = [ state.missing?.workshop ? workshopLink : '', state.missing?.utilities ? utilitiesLink : '' ].filter(Boolean).join(' · ');
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: data:; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'unsafe-inline' ${webview.cspSource};" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>LingTeX</title>
+        <style>${style}</style>
+      </head>
+      <body>
+        <img src="${iconUri}" alt="LingTeX" class="logo" />
+        <h2>LingTeX — Setup Required</h2>
+        <div class="help">To enable the full LingTeX panel, please install the recommended LaTeX extensions:</div>
+        <div style="margin:10px 0;">${missingList}</div>
+        <div style="display:flex; gap:8px; margin:8px 0;">
+          ${state.missing?.workshop ? '<button class="btn" data-cmd="extension.open" data-args="[\"James-Yu.latex-workshop\"]">Open LaTeX Workshop in VS Code</button>' : ''}
+          ${state.missing?.utilities ? '<button class="btn" data-cmd="extension.open" data-args="[\"tecosaur.latex-utilities\"]">Open LaTeX Utilities in VS Code</button>' : ''}
+        </div>
+        <div class="help" style="margin-top:10px;">After installing, reload the window to load the full UI.</div>
+        <script>
+          const vscode = acquireVsCodeApi();
+          document.querySelectorAll('[data-cmd]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const command = btn.getAttribute('data-cmd');
+              let args = undefined;
+              try { args = JSON.parse(btn.getAttribute('data-args')||''); } catch {}
+              vscode.postMessage({ type: 'runCommand', command, args });
+            });
           });
         </script>
       </body>

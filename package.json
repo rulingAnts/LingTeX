@@ -17,6 +17,10 @@
   ],
   "main": "./dist/extension.js",
   "icon": "resources/lingtex-icon.png",
+  "extensionDependencies": [
+    "James-Yu.latex-workshop",
+    "tecosaur.latex-utilities"
+  ],
   "activationEvents": [
     "onStartupFinished",
     "onViewContainer:lingtex"
