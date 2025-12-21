@@ -42,7 +42,7 @@
         </div>
       </div>
       <div class="hero-badges" style="gap:12px">
-        <img src="https://img.shields.io/github/v/release/rulingAnts/LingTeX" alt="Latest release badge">
+        <img src="https://img.shields.io/github/v/release/rulingAnts/LingTeX" alt="Latest release badge (v0.2.3)">
         <p id="latestVersion" class="more">Latest release</p>
         <a id="downloadVsix" class="btn primary disabled" aria-disabled="true" href="#">Download VSIX</a>
       </div>
@@ -52,6 +52,7 @@
       <article class="card">
         <h3>Step 1 — Install LaTeX (no GUI)</h3>
         <p>We recommend the official TeX Live/MacTeX distributions without a GUI. Pick your platform below; you can switch anytime.</p>
+        <p class="more">Tip: LingTeX can install a curated set of linguistics packages for you from the panel via “Install Recommended Packages”. On macOS, after installing BasicTeX, LingTeX automatically installs this set.</p>
 
         <div id="platformSwitch" style="display:flex; gap:8px; margin:12px 0 16px; flex-wrap: wrap;">
           <button class="btn ghost" data-platform="mac">macOS</button>
@@ -77,6 +78,9 @@ sudo tlmgr install latexmk xetex biber \
   setspace enumitem ragged2e needspace placeins float longtable \
   tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
   caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape</code></pre>
+              </li>
+              <li>
+                Or use LingTeX’s panel: open VS Code → LingTeX panel → TeX Environment → click “Install Recommended Packages”.
               </li>
               <li>
                 Verify tools:
@@ -106,6 +110,9 @@ tlmgr install latexmk xetex biber \
   caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape</code></pre>
               </li>
               <li>
+                Optionally, install the recommended set via LingTeX’s panel (TeX Environment → “Install Recommended Packages”). On TeX Live, this uses <code>tlmgr</code>; on MiKTeX, LingTeX uses <code>mpm --admin</code>.
+              </li>
+              <li>
                 Verify tools:
                 <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>xelatex --version
 biber --version
@@ -130,6 +137,9 @@ tlmgr install latexmk xetex biber \
   setspace enumitem ragged2e needspace placeins float longtable \
   tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
   caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape</code></pre>
+              </li>
+              <li>
+                Optionally, install the recommended set via LingTeX’s panel (TeX Environment → “Install Recommended Packages”). If <code>tlmgr</code> isn’t available in your distro’s TeX Live, use your package manager equivalents (e.g., <code>texlive-latex-extra</code>, <code>biber</code>).
               </li>
             </ol>
             <details>
@@ -218,6 +228,7 @@ code --install-extension tecosaur.latex-utilities</code></pre>
           <li>TSV ↔ LaTeX tabularx conversions; tabularx → Excel export.</li>
           <li>Import images as ready-to-compile LaTeX figure blocks.</li>
           <li>Settings panel controls for file paths (incl. main output PDF).</li>
+          <li>TeX Environment helpers: detect/install TeX, install recommended linguistics packages, and check/install missing preamble packages.</li>
         </ul>
         <p class="more">See full details in the <a href="https://github.com/rulingAnts/LingTeX#readme" target="_blank" rel="noopener">README</a>.</p>
       </article>
