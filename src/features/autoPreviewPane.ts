@@ -18,7 +18,7 @@ async function ensureGroupSplitDown(): Promise<void> {
 
 async function openUriInColumn(uri: vscode.Uri, col: vscode.ViewColumn): Promise<void> {
   try {
-    await vscode.commands.executeCommand('vscode.open', uri, { viewColumn: col, preserveFocus: true, preview: false });
+    await vscode.commands.executeCommand('vscode.open', uri, { viewColumn: col, preserveFocus: true, preview: true });
   } catch {}
 }
 
@@ -38,6 +38,7 @@ function tabUri(tab: vscode.Tab | undefined): vscode.Uri | undefined {
 
 // Fallback move: if no URI is available, we skip moving to avoid focus churn.
 
+let isEnforcing = false;
 async function enforceLayout(): Promise<void> {
   const folders = vscode.workspace.workspaceFolders || [];
   if (!folders.length) return;
@@ -50,25 +51,32 @@ async function enforceLayout(): Promise<void> {
   const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
   const enabled = !!cfg.get<boolean>('preview.autoPreviewPane', false);
   if (!enabled) return;
+  if (isEnforcing) return;
+  isEnforcing = true;
 
   const mainTexPath = resolvePathInFolder(cfg.get<string>('tex.mainFile', '') || '', rootFsPath);
   const mainPdfPath = resolvePathInFolder(cfg.get<string>('tex.mainPdf', '') || '', rootFsPath);
 
-  // Ensure main TeX open in top group
-  if (mainTexPath) {
-    await openUriInColumn(vscode.Uri.file(mainTexPath), vscode.ViewColumn.One);
-  }
-  // Ensure bottom group exists
-  await ensureGroupSplitDown();
-  // Open main PDF in bottom group
+  // Ensure bottom group exists only if we have a main PDF configured
   if (mainPdfPath) {
-    await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.Two);
+    await ensureGroupSplitDown();
+  }
+  // Open main PDF in bottom group if not already present
+  if (mainPdfPath) {
+    const groupsNow = vscode.window.tabGroups.all;
+    const bottom = groupsNow[1];
+    const bottomHasMainPdf = !!bottom && bottom.tabs.some(tb => {
+      const u = tabUri(tb); return !!u && u.fsPath === mainPdfPath;
+    });
+    if (!bottomHasMainPdf) {
+      await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.Two);
+    }
   }
 
   // Move non-main PDF tabs out of bottom group
   try {
     const groups = vscode.window.tabGroups.all;
-    const bottom = groups.find(g => g.viewColumn === vscode.ViewColumn.Two) || groups[1];
+    const bottom = groups[1];
     if (bottom) {
       for (const tb of bottom.tabs) {
         const u = tabUri(tb);
@@ -79,28 +87,33 @@ async function enforceLayout(): Promise<void> {
       }
     }
   } catch {}
+  isEnforcing = false;
 }
 
 export function registerAutoPreviewPane(context: vscode.ExtensionContext): void {
   let timer: NodeJS.Timeout | undefined;
   const schedule = () => {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => { enforceLayout().catch(()=>{}); }, 200);
+    timer = setTimeout(() => { enforceLayout().catch(()=>{}); }, 150);
   };
 
+  // React only to the requested events
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (
-        e.affectsConfiguration('lingtex.preview.autoPreviewPane') ||
-        e.affectsConfiguration('lingtex.tex.mainFile') ||
-        e.affectsConfiguration('lingtex.tex.mainPdf') ||
-        e.affectsConfiguration('lingtex.ui.selectedFolderIndex')
-      ) schedule();
+      if (e.affectsConfiguration('lingtex.preview.autoPreviewPane')) schedule();
     }),
-    vscode.window.onDidChangeActiveTextEditor(() => schedule()),
-    (vscode.window.tabGroups as any).onDidChangeTabs?.(() => schedule())
+    (vscode.window.tabGroups as any).onDidChangeTabs?.((ev: any) => {
+      try {
+        const opened = Array.isArray(ev?.opened) ? ev.opened.length : 0;
+        const closed = Array.isArray(ev?.closed) ? ev.closed.length : 0;
+        if (opened > 0 || closed > 0) schedule();
+      } catch {
+        // If event shape is unknown, still schedule conservatively
+        schedule();
+      }
+    })
   );
 
-  // Initial enforcement
+  // Apply once on activation if enabled
   schedule();
 }
