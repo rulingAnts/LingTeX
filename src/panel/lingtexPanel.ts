@@ -442,6 +442,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <button class="btn" data-cmd="lingtex.tex.checkEnvironment">Check Environment</button>
             <button class="btn" data-cmd="lingtex.tex.installDistribution">Install TeX Distribution</button>
             <button class="btn" data-cmd="lingtex.tex.checkPreamblePackages">Check Preamble Packages</button>
+            <button class="btn" data-cmd="lingtex.tex.installRecommendedPackages">Install Recommended Packages</button>
           </div>
         </div>
         `}
@@ -470,6 +471,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <button class="btn" data-cmd="lingtex.tex.checkEnvironment">Check Environment</button>
             <button class="btn" data-cmd="lingtex.tex.installDistribution">Install TeX Distribution</button>
             <button class="btn" data-cmd="lingtex.tex.checkPreamblePackages">Check Preamble Packages</button>
+            <button class="btn" data-cmd="lingtex.tex.installRecommendedPackages">Install Recommended Packages</button>
           </div>
         </details>
         <details>

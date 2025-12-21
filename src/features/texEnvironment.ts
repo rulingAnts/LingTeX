@@ -111,6 +111,23 @@ async function findMissingPackages(pkgs: string[]): Promise<string[]> {
 }
 
 export function registerTexEnvironment(context: vscode.ExtensionContext): void {
+  const recommendedLinguisticsPackages = [
+    // Engines / foundations
+    'xetex',
+    // Core packages
+    'fontspec','datetime2','footmisc','comment','geometry','csquotes',
+    'biblatex','biblatex-apa','biber','setspace','enumitem','ragged2e',
+    'needspace','placeins','longtable','tabularx','array','multirow','makecell',
+    'booktabs','diagbox','xcolor','tcolorbox','caption','glossaries-extra',
+    'etoolbox','ulem','fancyhdr','hyperref','cleveref','pdflscape',
+    // LaTeX3 packages providing xparse
+    'l3packages',
+    // Trees/graphics
+    'forest','pgf','qtree','tipa',
+    // gb4e (prefer langsci variant; include both to maximize success)
+    'langsci-gb4e','gb4e'
+  ];
+
   const checkEnv = vscode.commands.registerCommand('lingtex.tex.checkEnvironment', async () => {
     const env = await detectTexEnvironment();
     const msgs: string[] = [];
@@ -147,6 +164,54 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
   });
   context.subscriptions.push(checkPkgs);
 
+  const installRecommended = vscode.commands.registerCommand('lingtex.tex.installRecommendedPackages', async () => {
+    try {
+      const tl = await findBinary('tlmgr');
+      const mpm = await findBinary('mpm');
+      if (!tl && !mpm) { vscode.window.showErrorMessage('LingTeX: No package manager found (tlmgr/mpm). Install TeX Live or MiKTeX first, then try again.'); return; }
+      const folders = vscode.workspace.workspaceFolders || [];
+      if (!folders.length) { vscode.window.showErrorMessage('LingTeX: No workspace folder.'); return; }
+      const scopeUri = folders[0].uri;
+      const cfg = vscode.workspace.getConfiguration('lingtex', scopeUri);
+      let mainTex = (cfg.get<string>('tex.mainFile', '') || '').trim();
+      const rootFsPath = scopeUri.fsPath;
+      if (mainTex.startsWith('${workspaceFolder}')) mainTex = path.join(rootFsPath, mainTex.replace('${workspaceFolder}', ''));
+      else if (mainTex && !path.isAbsolute(mainTex)) mainTex = path.join(rootFsPath, mainTex);
+
+      // Merge recommended list with any missing preamble packages
+      let combined = [...recommendedLinguisticsPackages];
+      if (mainTex) {
+        try {
+          const content = await fs.promises.readFile(mainTex, 'utf8');
+          const preamblePkgs = parsePreamblePackages(content);
+          const missingFromPreamble = await findMissingPackages(preamblePkgs);
+          combined = Array.from(new Set([...combined, ...missingFromPreamble]));
+        } catch {
+          // ignore read errors; proceed with recommended list
+        }
+      }
+      // Create terminal and install via tlmgr or MiKTeX mpm
+      const term = vscode.window.createTerminal({ name: 'LingTeX: Install recommended packages' });
+      term.show();
+      const list = combined.join(' ');
+      if (tl) {
+        const texbin = path.dirname(tl);
+        term.sendText(`PATH="${texbin}:$PATH" tlmgr install ${list}`);
+        vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr in terminal.');
+      } else if (mpm) {
+        // MiKTeX: install packages via mpm (admin mode ensures system-wide)
+        term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
+        for (const p of combined) {
+          term.sendText(`mpm --admin --install=${p}`);
+        }
+        vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via MiKTeX mpm in terminal.');
+      }
+    } catch (e: any) {
+      vscode.window.showErrorMessage('LingTeX: Install failed: ' + (e?.message || String(e)));
+    }
+  });
+  context.subscriptions.push(installRecommended);
+
   const installPkgs = vscode.commands.registerCommand('lingtex.tex.installPackages', async (pkgs?: string[]) => {
     try {
       const tl = await findBinary('tlmgr');
@@ -168,12 +233,12 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
     const env = await detectTexEnvironment();
     if (env.texFound) {
       const choice = await vscode.window.showWarningMessage(
-        'A TeX distribution appears to be installed. Installing again may reinstall or add a second distribution. What would you like to do?',
+        'Warning: A TeX distribution is already installed. Installing another may cause toolchain conflicts, break PATH resolution, consume multiple gigabytes, and can be difficult to undo. Unless you are absolutely sure, do NOT continue. Prefer “Check Environment” or “Check Packages”.',
         { modal: true },
-        'Install anyway',
+        'Cancel',
         'Check Environment',
         'Check Packages',
-        'Cancel'
+        'Install anyway'
       );
       if (choice === 'Check Environment') { await vscode.commands.executeCommand('lingtex.tex.checkEnvironment'); return; }
       if (choice === 'Check Packages') { await vscode.commands.executeCommand('lingtex.tex.checkPreamblePackages'); return; }
@@ -185,8 +250,13 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
       const brew = await findBinary('brew');
       if (brew) {
         term.sendText('brew install --cask basictex');
-        term.sendText('echo "After install: PATH=/Library/TeX/texbin:$PATH; tlmgr update --self; tlmgr install latexmk"');
-        vscode.window.showInformationMessage('LingTeX: Installing BasicTeX via Homebrew in terminal.');
+        term.sendText('echo "Configuring TeX Live for this shell session…"');
+        term.sendText('export PATH=/Library/TeX/texbin:$PATH');
+        term.sendText('tlmgr update --self');
+        term.sendText('tlmgr install latexmk');
+        term.sendText('echo "Installing recommended linguistics packages…"');
+        term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
+        vscode.window.showInformationMessage('LingTeX: Installing BasicTeX via Homebrew and recommended packages in terminal.');
       } else {
         term.sendText('echo "Homebrew not found. Downloading BasicTeX.pkg…"');
         term.sendText('curl -L -o "$HOME/Downloads/BasicTeX.pkg" https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg');
@@ -196,6 +266,8 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
         term.sendText('export PATH=/Library/TeX/texbin:$PATH');
         term.sendText('tlmgr update --self');
         term.sendText('tlmgr install latexmk');
+        term.sendText('echo "Installing recommended linguistics packages…"');
+        term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
         vscode.window.showInformationMessage('LingTeX: Downloaded BasicTeX and started installer in terminal.');
       }
     } else if (process.platform === 'linux') {
@@ -225,6 +297,9 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
       }
       term.sendText(cmd);
       vscode.window.showInformationMessage('LingTeX: Running TeX install via '+pm+' in terminal.');
+      // Try to install recommended packages via tlmgr if available post-install
+      term.sendText('echo "Attempting to install recommended linguistics packages (if tlmgr is available)…"');
+      term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e || echo "tlmgr not available on distro installs. Please install packages via your package manager (e.g., texlive-latex-extra, biber, forest, qtree, tipa)."');
     } else if (process.platform === 'win32') {
       const winget = await findBinary('winget');
       const choco = await findBinary('choco');
@@ -238,10 +313,24 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
         const id = choice.value === 'miktex' ? 'MiKTeX.MiKTeX' : 'TeXLive.TeXLive';
         term.sendText(`winget install ${id}`);
         vscode.window.showInformationMessage('LingTeX: Running winget install for '+id+' in terminal.');
+        if (choice.value === 'texlive') {
+          term.sendText('echo "Installing recommended linguistics packages via tlmgr…"');
+          term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
+        } else {
+          term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
+          term.sendText('for %P in (fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e) do mpm --admin --install=%P');
+        }
       } else if (choco) {
         const pkg = choice.value === 'miktex' ? 'miktex' : 'texlive';
         term.sendText(`choco install ${pkg} -y`);
         vscode.window.showInformationMessage('LingTeX: Running choco install for '+pkg+' in terminal.');
+        if (choice.value === 'texlive') {
+          term.sendText('echo "Installing recommended linguistics packages via tlmgr…"');
+          term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
+        } else {
+          term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
+          term.sendText('for %P in (fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e) do mpm --admin --install=%P');
+        }
       } else {
         vscode.window.showInformationMessage('LingTeX: winget/choco not found. Please install MiKTeX or TeX Live manually.');
       }

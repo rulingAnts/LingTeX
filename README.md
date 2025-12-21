@@ -129,10 +129,14 @@ Troubleshooting: If VS Code reports an invalid VSIX, re-download from Releases. 
 	- Install TeX Distribution (cross-platform helper opens a terminal and runs an appropriate installer)
 	- Check Preamble Packages (parse `\usepackage{...}` and offer to install missing packages)
 - Safety guard: If a TeX environment appears installed, clicking Install prompts with a modal dialog offering “Install anyway”, “Check Environment”, “Check Packages”, or “Cancel”. This prevents accidental reinstalls or dual installs.
+ - Recommended packages: Use “Install Recommended Packages” to install a curated set for linguistics (fontspec, biblatex/biber, gb4e/langsci-gb4e, forest, qtree, tipa, tables/graphics, glossaries, cross-references, and more). If your main TeX is set, LingTeX merges any missing preamble packages into the install list.
 - Platform notes:
 	- macOS: Uses Homebrew when available; otherwise downloads and runs `BasicTeX.pkg`, then runs `tlmgr` steps (`update --self`, install `latexmk`). PATH `/Library/TeX/texbin` is set for the terminal session.
+	  After install, LingTeX also installs the recommended linguistics packages automatically (via `tlmgr`).
 	- Linux: Detects common package managers (`apt`, `dnf`, `yum`, `pacman`, `zypper`) and runs Minimal or Full installs. Some distros ship older packages; prefer TeX Live upstream when needed.
+	  Post-install, LingTeX attempts to install the recommended set via `tlmgr`; if unavailable on your distro’s TeX Live, the panel shows guidance to install equivalents via your package manager (`texlive-latex-extra`, `biber`, etc.).
 	- Windows: Installs MiKTeX or TeX Live via `winget` or `choco`. Windows can support dual installs; prefer one distribution and ensure the desired binaries are on PATH.
+	  Post-install, LingTeX installs the recommended set using `tlmgr` (TeX Live) or `mpm --admin` (MiKTeX).
 
 ## Commands
 LingTeX now uses a panel-only UX. Commands are hidden from the Command Palette; launch actions from the LingTeX panel in the Activity Bar. Title bar actions (Generate/Cancel) appear contextually when using TSV templates.

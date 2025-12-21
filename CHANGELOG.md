@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 (2025-12-21)
+- Packages: New command “Install Recommended Packages” installs a curated set for linguistics papers (fontspec, biblatex/biber, gb4e/langsci-gb4e, forest, qtree, tipa, tables/graphics, and more). If a main TeX file is set, missing preamble packages are merged into the install list.
+- Cross-platform: Uses `tlmgr` (TeX Live/MacTeX) and falls back to `mpm --admin` (MiKTeX) on Windows. macOS installs the recommended set automatically right after BasicTeX.
+- Linux/Windows post-install: Attempts recommended installs; when `tlmgr` isn’t available on distro-managed TeX Live, prints guidance to install equivalents via the distro (e.g., texlive-latex-extra, biber).
+- Safety: The installer guard dialog is now more explicit and places “Cancel” first to discourage accidental reinstalls.
+
 ## 0.2.2 (2025-12-21)
 - Panel: Added TeX Environment section with buttons to check environment, install a distribution, and check/install missing preamble packages. The section auto-opens when no TeX is detected.
 - Warning: A prominent red warning band appears at the top of the panel when no TeX distribution is found, with quick actions.
