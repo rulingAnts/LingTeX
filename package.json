@@ -105,6 +105,18 @@
       {
         "command": "lingtex.splitSections",
         "title": "LingTeX: Split Sections"
+      },
+      {
+        "command": "lingtex.tex.checkEnvironment",
+        "title": "LingTeX: Check TeX Environment"
+      },
+      {
+        "command": "lingtex.tex.addTexToPath",
+        "title": "LingTeX: Add TeX to PATH"
+      },
+      {
+        "command": "lingtex.testing.toggleSimulateNoTex",
+        "title": "LingTeX: Toggle Simulate No TeX"
       }
     ],
     "menus": {
@@ -244,6 +256,12 @@
           "type": "boolean",
           "default": false,
           "description": "Auto-manage preview: keep main TeX open in the top group and main PDF open in the bottom group (resource-scoped per workspace folder).",
+          "scope": "resource"
+        },
+        "lingtex.testing.simulateNoTex": {
+          "type": "boolean",
+          "default": false,
+          "description": "Testing: simulate a system without TeX so detection returns not found and installation flows can be tested.",
           "scope": "resource"
         }
       }

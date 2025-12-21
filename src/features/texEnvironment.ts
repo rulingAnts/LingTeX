@@ -4,6 +4,21 @@ import * as path from 'path';
 import * as os from 'os';
 import { execFile } from 'child_process';
 
+function getLingtexConfig(): vscode.WorkspaceConfiguration {
+  const folders = vscode.workspace.workspaceFolders || [];
+  const scopeUri = folders[0]?.uri;
+  return vscode.workspace.getConfiguration('lingtex', scopeUri);
+}
+
+function simulateNoTex(): boolean {
+  try {
+    const cfg = getLingtexConfig();
+    return !!cfg.get<boolean>('testing.simulateNoTex', false);
+  } catch {
+    return false;
+  }
+}
+
 function whichAsync(bin: string, extraPaths: string[] = []): Promise<string | null> {
   const env = { ...process.env };
   const parts = (env.PATH || '').split(path.delimiter);
@@ -24,6 +39,7 @@ async function existsIn(dir: string, bin: string): Promise<boolean> {
 }
 
 async function findBinary(bin: string): Promise<string | null> {
+  if (simulateNoTex()) return null;
   // Prefer PATH search but also check common platform locations
   const extra: string[] = [];
   if (process.platform === 'darwin') {
@@ -84,6 +100,9 @@ async function detectLinuxPackageManager(): Promise<'apt'|'dnf'|'yum'|'pacman'|'
 
 export async function detectTexEnvironment(): Promise<{ texFound: boolean; tlmgrFound: boolean; kpseFound: boolean }>
 {
+  if (simulateNoTex()) {
+    return { texFound: false, tlmgrFound: false, kpseFound: false };
+  }
   const latexmk = await findBinary('latexmk');
   const pdflatex = await findBinary('pdflatex');
   const xelatex = await findBinary('xelatex');
@@ -125,8 +144,6 @@ async function findMissingPackages(pkgs: string[]): Promise<string[]> {
 
 export function registerTexEnvironment(context: vscode.ExtensionContext): void {
   const recommendedLinguisticsPackages = [
-    // Engines / foundations
-    'xetex',
     // Core packages
     'fontspec','datetime2','footmisc','comment','geometry','csquotes',
     'biblatex','biblatex-apa','biber','setspace','enumitem','ragged2e',
@@ -138,7 +155,7 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
     // Trees/graphics
     'forest','pgf','qtree','tipa',
     // gb4e (prefer langsci variant; include both to maximize success)
-    'langsci-gb4e','gb4e'
+    'gb4e'
   ];
 
   const checkEnv = vscode.commands.registerCommand('lingtex.tex.checkEnvironment', async () => {
@@ -148,17 +165,41 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
     msgs.push(env.kpseFound ? 'kpsewhich available.' : 'kpsewhich not found.');
     msgs.push(env.tlmgrFound ? 'tlmgr available.' : 'tlmgr not found.');
     if (env.texFound) {
-      vscode.window.showInformationMessage('LingTeX: ' + msgs.join(' '));
+      // Offer to add TeX to PATH if detected but not present in PATH
+      const tl = await findBinary('tlmgr');
+      const binDir = tl ? path.dirname(tl) : (process.platform === 'darwin' ? '/Library/TeX/texbin' : '');
+      const inPath = binDir ? (String(process.env.PATH || '').split(path.delimiter).includes(binDir)) : true;
+      if (!inPath && binDir) {
+        const action = await vscode.window.showInformationMessage('LingTeX: ' + msgs.join(' '), 'Add TeX to PATH');
+        if (action === 'Add TeX to PATH') {
+          await vscode.commands.executeCommand('lingtex.tex.addTexToPath');
+          return;
+        }
+      } else {
+        vscode.window.showInformationMessage('LingTeX: ' + msgs.join(' '));
+      }
     } else {
+      // Show platform-specific download links instead of running an installer flow.
+      let buttons: string[] = [];
+      let link: string | null = null;
+      if (process.platform === 'darwin') {
+        buttons = ['Download BasicTeX (macOS)', 'Open Install Guide', 'Cancel'];
+        link = 'https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg';
+      } else if (process.platform === 'win32') {
+        buttons = ['Download TeX Live (Windows)', 'Open Install Guide', 'Cancel'];
+        link = 'https://mirror.ctan.org/systems/texlive/tlnet/install-tl-windows.exe';
+      } else {
+        buttons = ['Open Install Guide', 'Cancel'];
+      }
       const choice = await vscode.window.showWarningMessage(
-        'LingTeX: No TeX environment detected. Install now?',
+        'LingTeX: No TeX environment detected. Download a minimal distribution and use tlmgr to add packages.',
         { modal: true },
-        'Install TeX Distribution',
-        'Open Install Guide',
-        'Cancel'
+        ...buttons
       );
-      if (choice === 'Install TeX Distribution') { await vscode.commands.executeCommand('lingtex.tex.installDistribution'); }
-      else if (choice === 'Open Install Guide') {
+      if (!choice) return;
+      if (choice.startsWith('Download') && link) {
+        vscode.env.openExternal(vscode.Uri.parse(link));
+      } else if (choice === 'Open Install Guide') {
         vscode.env.openExternal(vscode.Uri.parse('https://rulingants.github.io/LingTeX/install.html'));
       }
     }
@@ -220,23 +261,21 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
       // Create terminal and install via tlmgr or MiKTeX mpm
       const term = vscode.window.createTerminal({ name: 'LingTeX: Install recommended packages' });
       term.show();
-      const list = combined.join(' ');
       if (tl) {
         const texbin = path.dirname(tl);
-        const isSystemMacTeX = process.platform === 'darwin' && (texbin.startsWith('/Library/TeX/texbin') || texbin.includes('/usr/local/texlive'));
-        if (isSystemMacTeX) {
-          term.sendText(`sudo -E env PATH="${texbin}:$PATH" tlmgr install ${list}`);
-          vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr (sudo) in terminal.');
-        } else {
-          term.sendText(`env PATH="${texbin}:$PATH" tlmgr install ${list}`);
-          vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr in terminal.');
-        }
+        const pkgsList = combined.join(' ');
+        // Define helpers and run per-package installs with progress + skip logic
+        term.sendText(`export PATH="${texbin}:$PATH"`);
+        term.sendText('tlmgr_safe() { OUTPUT=$(tlmgr "$@" 2>&1); if echo "$OUTPUT" | grep -qi "not writable\\|permission denied"; then echo "Permission denied, retrying with sudo..."; sudo -E tlmgr "$@"; else echo "$OUTPUT"; fi; }');
+        term.sendText('tlmgr_safe option repository http://mirror.ctan.org/systems/texlive/tlnet');
+        term.sendText('echo "Updating tlmgr…"');
+        term.sendText('tlmgr_safe update --self');
+        term.sendText('i=1; N=$(for P in '+pkgsList+'; do echo $P; done | wc -l | tr -d " "); for P in '+pkgsList+'; do echo "[$i/$N] Checking $P…"; OUT=$(tlmgr info "$P" 2>&1); if echo "$OUT" | grep -qi "cannot find"; then echo "Skipping $P (not found in repository)"; i=$((i+1)); continue; fi; if echo "$OUT" | grep -qi "installed: *Yes"; then echo "Skipping $P (already installed)"; i=$((i+1)); continue; fi; echo "[$i/$N] Installing $P…"; tlmgr_safe install "$P"; i=$((i+1)); done; echo "All requested packages processed."');
+        vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr with progress and safe skips.');
       } else if (mpm) {
         // MiKTeX: install packages via mpm (admin mode ensures system-wide)
         term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
-        for (const p of combined) {
-          term.sendText(`mpm --admin --install=${p}`);
-        }
+        term.sendText('i=1; N=$(for P in '+combined.join(' ')+'; do echo $P; done | wc -l | tr -d " "); for P in '+combined.join(' ')+'; do echo "[$i/$N] Installing $P…"; mpm --admin --install="$P" || echo "Skipping $P (mpm error or unavailable)"; i=$((i+1)); done; echo "All requested packages processed."');
         vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via MiKTeX mpm in terminal.');
       }
     } catch (e: any) {
@@ -254,149 +293,71 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
       const texbin = path.dirname(tl);
       const list = Array.isArray(pkgs) && pkgs.length ? pkgs.join(' ') : '';
       if (!list) { vscode.window.showInformationMessage('LingTeX: No packages selected for installation.'); return; }
-      term.sendText(`PATH="${texbin}:$PATH" tlmgr install ${list}`);
-      vscode.window.showInformationMessage('LingTeX: Installing selected packages via tlmgr in terminal.');
+      term.sendText(`export PATH="${texbin}:$PATH"`);
+      term.sendText('tlmgr_safe() { OUTPUT=$(tlmgr "$@" 2>&1); if echo "$OUTPUT" | grep -qi "not writable\\|permission denied"; then echo "Permission denied, retrying with sudo..."; sudo -E tlmgr "$@"; else echo "$OUTPUT"; fi; }');
+      term.sendText('tlmgr_safe option repository http://mirror.ctan.org/systems/texlive/tlnet');
+      term.sendText('i=1; N=$(for P in '+list+'; do echo $P; done | wc -l | tr -d " "); for P in '+list+'; do echo "[$i/$N] Checking $P…"; OUT=$(tlmgr info "$P" 2>&1); if echo "$OUT" | grep -qi "cannot find"; then echo "Skipping $P (not found in repository)"; i=$((i+1)); continue; fi; if echo "$OUT" | grep -qi "installed: *Yes"; then echo "Skipping $P (already installed)"; i=$((i+1)); continue; fi; echo "[$i/$N] Installing $P…"; tlmgr_safe install "$P"; i=$((i+1)); done; echo "All selected packages processed."');
+      vscode.window.showInformationMessage('LingTeX: Installing selected packages via tlmgr with progress and safe skips.');
     } catch (e: any) {
       vscode.window.showErrorMessage('LingTeX: Install failed: ' + (e?.message || String(e)));
     }
   });
   context.subscriptions.push(installPkgs);
 
-  const installDistribution = vscode.commands.registerCommand('lingtex.tex.installDistribution', async () => {
-    const env = await detectTexEnvironment();
-    if (env.texFound) {
-      const choice = await vscode.window.showWarningMessage(
-        'Warning: A TeX distribution is already installed. Installing another may cause toolchain conflicts, break PATH resolution, consume multiple gigabytes, and can be difficult to undo. Unless you are absolutely sure, do NOT continue. Prefer “Check Environment” or “Check Packages”.',
-        { modal: true },
-        'Cancel',
-        'Check Environment',
-        'Check Packages',
-        'Install anyway'
-      );
-      if (choice === 'Check Environment') { await vscode.commands.executeCommand('lingtex.tex.checkEnvironment'); return; }
-      if (choice === 'Check Packages') { await vscode.commands.executeCommand('lingtex.tex.checkPreamblePackages'); return; }
-      if (choice !== 'Install anyway') return;
-    }
-    const term = vscode.window.createTerminal({ name: 'LingTeX: Install TeX distribution' });
-    term.show();
-    if (process.platform === 'darwin') {
-      const pick = await vscode.window.showQuickPick([
-        { label: 'User-local TeX Live (no sudo)', description: 'Install to ~/texlive/<year> and manage packages without sudo', value: 'user' },
-        { label: 'BasicTeX via Homebrew (admin)', description: 'System-wide; tlmgr requires sudo', value: 'brew' },
-        { label: 'BasicTeX.pkg (admin)', description: 'Download and install .pkg; tlmgr requires sudo', value: 'pkg' }
-      ], { placeHolder: 'Choose macOS install method' });
-      if (!pick) return;
-      const year = new Date().getFullYear();
-      if (pick.value === 'user') {
-        term.sendText('echo "Downloading TeX Live installer…"');
-        term.sendText('curl -sLO http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz');
-        term.sendText('tar -xzf install-tl-unx.tar.gz');
-        term.sendText('cd install-tl-*');
-        term.sendText('echo "Creating unattended profile…"');
-        term.sendText('echo "selected_scheme scheme-small" > texlive.profile');
-        term.sendText(`echo "TEXDIR $HOME/texlive/${year}" >> texlive.profile`);
-        term.sendText('echo "instopt_letter 1" >> texlive.profile');
-        term.sendText('echo "tlpdbopt_autobackup 0" >> texlive.profile');
-        term.sendText('echo "no_doc 1" >> texlive.profile');
-        term.sendText('echo "no_src 1" >> texlive.profile');
-        term.sendText('echo "Starting unattended install…"');
-        term.sendText('perl install-tl --profile=texlive.profile');
-        term.sendText('cd ..');
-        term.sendText('echo "Configuring PATH for this terminal session…"');
-        term.sendText(`export PATH="$HOME/texlive/${year}/bin/universal-darwin:$PATH"`);
-        term.sendText('tlmgr update --self');
-        term.sendText('tlmgr install latexmk');
-        term.sendText('echo "Installing recommended linguistics packages…"');
-        term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        vscode.window.showInformationMessage('LingTeX: Installing user-local TeX Live (no sudo) and recommended packages in terminal.');
-        term.sendText('echo "Add this to ~/.zshrc to persist: export PATH=\"$HOME/texlive/'+year+'/bin/universal-darwin:$PATH\""');
-      } else if (pick.value === 'brew') {
-        term.sendText('brew install --cask basictex');
-        term.sendText('echo "Configuring TeX Live for this shell session…"');
-        term.sendText('export PATH=/Library/TeX/texbin:$PATH');
-        term.sendText('sudo -E tlmgr update --self');
-        term.sendText('sudo -E tlmgr install latexmk');
-        term.sendText('echo "Installing recommended linguistics packages (sudo)…"');
-        term.sendText('sudo -E tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        vscode.window.showInformationMessage('LingTeX: Installing BasicTeX via Homebrew and recommended packages (sudo) in terminal.');
-      } else {
-        term.sendText('echo "Downloading BasicTeX.pkg…"');
-        term.sendText('curl -L -o "$HOME/Downloads/BasicTeX.pkg" https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg');
-        term.sendText('echo "Running installer (you may be prompted for your password)…"');
-        term.sendText('sudo installer -pkg "$HOME/Downloads/BasicTeX.pkg" -target /');
-        term.sendText('echo "Configuring TeX Live for this shell session…"');
-        term.sendText('export PATH=/Library/TeX/texbin:$PATH');
-        term.sendText('sudo -E tlmgr update --self');
-        term.sendText('sudo -E tlmgr install latexmk');
-        term.sendText('echo "Installing recommended linguistics packages (sudo)…"');
-        term.sendText('sudo -E tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        vscode.window.showInformationMessage('LingTeX: Installed BasicTeX.pkg and began recommended package install (sudo) in terminal.');
+  const addTexToPath = vscode.commands.registerCommand('lingtex.tex.addTexToPath', async () => {
+    try {
+      const tl = await findBinary('tlmgr');
+      let texbin = tl ? path.dirname(tl) : '';
+      if (!texbin && process.platform === 'darwin') {
+        const candidates: string[] = ['/Library/TeX/texbin'];
+        try {
+          const home = os.homedir();
+          const base = path.join(home, 'texlive');
+          const years = await fs.promises.readdir(base).catch(() => [] as string[]);
+          for (const y of years) { candidates.push(path.join(base, y, 'bin', 'universal-darwin')); }
+        } catch {}
+        for (const c of candidates) { try { const st = await fs.promises.stat(c); if (st.isDirectory()) { texbin = c; break; } } catch {} }
       }
-    } else if (process.platform === 'linux') {
-      const pm = await detectLinuxPackageManager();
-      const opts = [
-        { label: 'Minimal (latexmk + LaTeX)', value: 'minimal' },
-        { label: 'Full (large download)', value: 'full' }
-      ];
-      const choice = await vscode.window.showQuickPick(opts, { placeHolder: 'Choose TeX Live install size' });
+      if (!texbin) { vscode.window.showErrorMessage('LingTeX: Could not locate TeX bin directory to add to PATH.'); return; }
+      const choice = await vscode.window.showQuickPick([
+        { label: 'Persist for zsh (~/.zshrc)', description: 'Add export line to ~/.zshrc', value: 'zshrc' },
+        { label: 'Only this terminal session', value: 'session' }
+      ], { placeHolder: 'Add TeX to PATH permanently?' });
       if (!choice) return;
-      let cmd = '';
-      if (pm === 'apt') {
-        cmd = choice.value === 'full' ? 'sudo apt-get update && sudo apt-get install -y texlive-full'
-                                      : 'sudo apt-get update && sudo apt-get install -y texlive texlive-latex-extra latexmk';
-      } else if (pm === 'dnf' || pm === 'yum') {
-        cmd = choice.value === 'full' ? 'sudo '+pm+' install -y texlive-scheme-full'
-                                      : 'sudo '+pm+' install -y texlive texlive-collection-latexrecommended latexmk';
-      } else if (pm === 'pacman') {
-        cmd = choice.value === 'full' ? 'sudo pacman -S --needed texlive-bin texlive-core texlive-latexextra latexmk'
-                                      : 'sudo pacman -S --needed texlive-bin texlive-core latexmk';
-      } else if (pm === 'zypper') {
-        cmd = choice.value === 'full' ? 'sudo zypper install -y texlive texlive-latexextra latexmk'
-                                      : 'sudo zypper install -y texlive texlive-latexextra latexmk';
-      } else {
-        vscode.window.showInformationMessage('LingTeX: Unknown Linux package manager. Please install TeX Live via your distro and include latexmk.');
-        return;
-      }
-      term.sendText(cmd);
-      vscode.window.showInformationMessage('LingTeX: Running TeX install via '+pm+' in terminal.');
-      // Try to install recommended packages via tlmgr if available post-install
-      term.sendText('echo "Attempting to install recommended linguistics packages (if tlmgr is available)…"');
-      term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e || echo "tlmgr not available on distro installs. Please install packages via your package manager (e.g., texlive-latex-extra, biber, forest, qtree, tipa)."');
-    } else if (process.platform === 'win32') {
-      const winget = await findBinary('winget');
-      const choco = await findBinary('choco');
-      const opts = [
-        { label: 'Install MiKTeX (recommended)', value: 'miktex' },
-        { label: 'Install TeX Live', value: 'texlive' }
-      ];
-      const choice = await vscode.window.showQuickPick(opts, { placeHolder: 'Choose Windows TeX distribution' });
-      if (!choice) return;
-      if (winget) {
-        const id = choice.value === 'miktex' ? 'MiKTeX.MiKTeX' : 'TeXLive.TeXLive';
-        term.sendText(`winget install ${id}`);
-        vscode.window.showInformationMessage('LingTeX: Running winget install for '+id+' in terminal.');
-        if (choice.value === 'texlive') {
-          term.sendText('echo "Installing recommended linguistics packages via tlmgr…"');
-          term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        } else {
-          term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
-          term.sendText('for %P in (fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e) do mpm --admin --install=%P');
-        }
-      } else if (choco) {
-        const pkg = choice.value === 'miktex' ? 'miktex' : 'texlive';
-        term.sendText(`choco install ${pkg} -y`);
-        vscode.window.showInformationMessage('LingTeX: Running choco install for '+pkg+' in terminal.');
-        if (choice.value === 'texlive') {
-          term.sendText('echo "Installing recommended linguistics packages via tlmgr…"');
-          term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        } else {
-          term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
-          term.sendText('for %P in (fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e) do mpm --admin --install=%P');
+      if (choice.value === 'zshrc') {
+        try {
+          const zshrc = path.join(os.homedir(), '.zshrc');
+          const line = `export PATH="${texbin}:$PATH"`;
+          let contents = '';
+          try { contents = await fs.promises.readFile(zshrc, 'utf8'); } catch {}
+          if (!contents.includes(line)) {
+            await fs.promises.appendFile(zshrc, (contents && !contents.endsWith('\n') ? '\n' : '') + line + '\n', 'utf8');
+          }
+          vscode.window.showInformationMessage('LingTeX: Added TeX to PATH in ~/.zshrc. Restart your shell or VS Code if needed.');
+        } catch (e: any) {
+          vscode.window.showErrorMessage('LingTeX: Failed to update ~/.zshrc: ' + (e?.message || String(e)));
         }
       } else {
-        vscode.window.showInformationMessage('LingTeX: winget/choco not found. Please install MiKTeX or TeX Live manually.');
+        const term = vscode.window.createTerminal({ name: 'LingTeX: Add TeX to PATH' });
+        term.show();
+        term.sendText(`export PATH="${texbin}:$PATH"`);
+        vscode.window.showInformationMessage('LingTeX: TeX added to PATH for current terminal session.');
       }
+    } catch (e: any) {
+      vscode.window.showErrorMessage('LingTeX: Add PATH failed: ' + (e?.message || String(e)));
     }
   });
-  context.subscriptions.push(installDistribution);
+  context.subscriptions.push(addTexToPath);
+
+  // TeX distribution installation command temporarily disabled; preserved here for future testing.
+  // const installDistribution = vscode.commands.registerCommand('lingtex.tex.installDistribution', async () => { /* disabled */ });
+  // context.subscriptions.push(installDistribution);
+
+  const toggleSimulateNoTex = vscode.commands.registerCommand('lingtex.testing.toggleSimulateNoTex', async () => {
+    const cfg = getLingtexConfig();
+    const current = !!cfg.get<boolean>('testing.simulateNoTex', false);
+    await cfg.update('testing.simulateNoTex', !current, vscode.ConfigurationTarget.Workspace);
+    vscode.window.showInformationMessage(`LingTeX: simulateNoTex is now ${!current ? 'ON' : 'OFF'}.`);
+  });
+  context.subscriptions.push(toggleSimulateNoTex);
 }
