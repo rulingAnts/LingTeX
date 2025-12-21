@@ -14,9 +14,34 @@ For full, platform-specific instructions with auto-detected tabs, see the websit
 We recommend TeX Live/MacTeX without a GUI editor and installing required packages for linguistics papers. Your template likely uses XeLaTeX and depends on packages such as `langsci-gb4e`, `graphicx`, `tabularx`, `biblatex` (with `biber`), `glossaries-extra`, `hyperref`, `cleveref`, and others listed below.
 
 #### macOS (MacTeX/BasicTeX)
+- Option A — User-local TeX Live (no sudo)
+  - Install to your home directory using the TeX Live installer. This avoids admin prompts and lets `tlmgr` manage packages without sudo.
+
+```
+curl -LO http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
+tar -xzf install-tl-unx.tar.gz
+cd install-tl-*
+echo "selected_scheme scheme-small" > texlive.profile
+echo "TEXDIR $HOME/texlive/$(date +%Y)" >> texlive.profile
+echo "instopt_letter 1" >> texlive.profile
+echo "tlpdbopt_autobackup 0" >> texlive.profile
+echo "no_doc 1" >> texlive.profile
+echo "no_src 1" >> texlive.profile
+perl install-tl --profile=texlive.profile
+export PATH="$HOME/texlive/$(date +%Y)/bin/universal-darwin:$PATH"
+tlmgr update --self
+tlmgr install latexmk xetex biber \
+	datetime2 footmisc comment geometry fontspec \
+	langsci-gb4e forest qtree tipa csquotes biblatex xparse \
+	setspace enumitem ragged2e needspace placeins float longtable \
+	tabularx array multirow makecell booktabs diagbox xcolor tcolorbox \
+	caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape
+```
+
+- Option B — BasicTeX (system-wide; admin)
 - BasicTeX (smaller, no GUI): https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg
 - Full MacTeX: https://tug.org/mactex/
-- Install required tools and packages with `tlmgr` (admin privileges required):
+  - Install required tools and packages with `tlmgr` (admin privileges required):
 
 ```
 sudo -E tlmgr update --self

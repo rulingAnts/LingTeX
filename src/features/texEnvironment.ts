@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { execFile } from 'child_process';
 
 function whichAsync(bin: string, extraPaths: string[] = []): Promise<string | null> {
@@ -27,6 +28,18 @@ async function findBinary(bin: string): Promise<string | null> {
   const extra: string[] = [];
   if (process.platform === 'darwin') {
     extra.push('/Library/TeX/texbin');
+    // Also check user-local TeX Live installs in ~/texlive/<year>/bin/universal-darwin
+    try {
+      const home = os.homedir();
+      const base = path.join(home, 'texlive');
+      const years = await fs.promises.readdir(base).catch(() => [] as string[]);
+      for (const y of years) {
+        const p = path.join(base, y, 'bin', 'universal-darwin');
+        extra.push(p);
+      }
+    } catch {
+      // ignore
+    }
   } else if (process.platform === 'win32') {
     extra.push('C:/texlive/2024/bin/win32');
     extra.push('C:/texlive/2025/bin/win32');
@@ -210,11 +223,12 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
       const list = combined.join(' ');
       if (tl) {
         const texbin = path.dirname(tl);
-        if (process.platform === 'darwin') {
+        const isSystemMacTeX = process.platform === 'darwin' && (texbin.startsWith('/Library/TeX/texbin') || texbin.includes('/usr/local/texlive'));
+        if (isSystemMacTeX) {
           term.sendText(`sudo -E env PATH="${texbin}:$PATH" tlmgr install ${list}`);
           vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr (sudo) in terminal.');
         } else {
-          term.sendText(`PATH="${texbin}:$PATH" tlmgr install ${list}`);
+          term.sendText(`env PATH="${texbin}:$PATH" tlmgr install ${list}`);
           vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr in terminal.');
         }
       } else if (mpm) {
@@ -266,8 +280,37 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
     const term = vscode.window.createTerminal({ name: 'LingTeX: Install TeX distribution' });
     term.show();
     if (process.platform === 'darwin') {
-      const brew = await findBinary('brew');
-      if (brew) {
+      const pick = await vscode.window.showQuickPick([
+        { label: 'User-local TeX Live (no sudo)', description: 'Install to ~/texlive/<year> and manage packages without sudo', value: 'user' },
+        { label: 'BasicTeX via Homebrew (admin)', description: 'System-wide; tlmgr requires sudo', value: 'brew' },
+        { label: 'BasicTeX.pkg (admin)', description: 'Download and install .pkg; tlmgr requires sudo', value: 'pkg' }
+      ], { placeHolder: 'Choose macOS install method' });
+      if (!pick) return;
+      const year = new Date().getFullYear();
+      if (pick.value === 'user') {
+        term.sendText('echo "Downloading TeX Live installer…"');
+        term.sendText('curl -sLO http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz');
+        term.sendText('tar -xzf install-tl-unx.tar.gz');
+        term.sendText('cd install-tl-*');
+        term.sendText('echo "Creating unattended profile…"');
+        term.sendText('echo "selected_scheme scheme-small" > texlive.profile');
+        term.sendText(`echo "TEXDIR $HOME/texlive/${year}" >> texlive.profile`);
+        term.sendText('echo "instopt_letter 1" >> texlive.profile');
+        term.sendText('echo "tlpdbopt_autobackup 0" >> texlive.profile');
+        term.sendText('echo "no_doc 1" >> texlive.profile');
+        term.sendText('echo "no_src 1" >> texlive.profile');
+        term.sendText('echo "Starting unattended install…"');
+        term.sendText('perl install-tl --profile=texlive.profile');
+        term.sendText('cd ..');
+        term.sendText('echo "Configuring PATH for this terminal session…"');
+        term.sendText(`export PATH="$HOME/texlive/${year}/bin/universal-darwin:$PATH"`);
+        term.sendText('tlmgr update --self');
+        term.sendText('tlmgr install latexmk');
+        term.sendText('echo "Installing recommended linguistics packages…"');
+        term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
+        vscode.window.showInformationMessage('LingTeX: Installing user-local TeX Live (no sudo) and recommended packages in terminal.');
+        term.sendText('echo "Add this to ~/.zshrc to persist: export PATH=\"$HOME/texlive/'+year+'/bin/universal-darwin:$PATH\""');
+      } else if (pick.value === 'brew') {
         term.sendText('brew install --cask basictex');
         term.sendText('echo "Configuring TeX Live for this shell session…"');
         term.sendText('export PATH=/Library/TeX/texbin:$PATH');
@@ -277,7 +320,7 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
         term.sendText('sudo -E tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
         vscode.window.showInformationMessage('LingTeX: Installing BasicTeX via Homebrew and recommended packages (sudo) in terminal.');
       } else {
-        term.sendText('echo "Homebrew not found. Downloading BasicTeX.pkg…"');
+        term.sendText('echo "Downloading BasicTeX.pkg…"');
         term.sendText('curl -L -o "$HOME/Downloads/BasicTeX.pkg" https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg');
         term.sendText('echo "Running installer (you may be prompted for your password)…"');
         term.sendText('sudo installer -pkg "$HOME/Downloads/BasicTeX.pkg" -target /');
@@ -287,7 +330,7 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
         term.sendText('sudo -E tlmgr install latexmk');
         term.sendText('echo "Installing recommended linguistics packages (sudo)…"');
         term.sendText('sudo -E tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        vscode.window.showInformationMessage('LingTeX: Downloaded BasicTeX and started installer in terminal.');
+        vscode.window.showInformationMessage('LingTeX: Installed BasicTeX.pkg and began recommended package install (sudo) in terminal.');
       }
     } else if (process.platform === 'linux') {
       const pm = await detectLinuxPackageManager();

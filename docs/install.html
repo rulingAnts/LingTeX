@@ -62,17 +62,30 @@
 
         <div id="platform-panels" class="platform-panels">
           <div class="platform-panel" data-platform="mac" style="display:none">
-            <h4>macOS (MacTeX/BasicTeX)</h4>
+            <h4>macOS</h4>
             <ol>
               <li>
-                Install <strong>BasicTeX</strong> (no GUI, smaller download) from
-                <a href="https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg" target="_blank" rel="noopener">CTAN (BasicTeX.pkg)</a>.
-                Alternatively, full <strong>MacTeX</strong> from <a href="https://tug.org/mactex/" target="_blank" rel="noopener">tug.org/mactex</a>.
+                Option A — <strong>User-local TeX Live (no sudo)</strong>:
+                <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>curl -LO http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
+tar -xzf install-tl-unx.tar.gz
+cd install-tl-*
+echo "selected_scheme scheme-small" > texlive.profile
+echo "TEXDIR $HOME/texlive/$(date +%Y)" >> texlive.profile
+echo "instopt_letter 1" >> texlive.profile
+echo "tlpdbopt_autobackup 0" >> texlive.profile
+echo "no_doc 1" >> texlive.profile
+echo "no_src 1" >> texlive.profile
+perl install-tl --profile=texlive.profile
+export PATH="$HOME/texlive/$(date +%Y)/bin/universal-darwin:$PATH"</code></pre>
+              </li>
+              <li>
+                Option B — <strong>BasicTeX</strong> (system-wide):
+                <a href="https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg" target="_blank" rel="noopener">CTAN (BasicTeX.pkg)</a>. Or full <strong>MacTeX</strong> via <a href="https://tug.org/mactex/" target="_blank" rel="noopener">tug.org/mactex</a>.
               </li>
               <li>
                 Open Terminal and install required engines, tools, and packages with <code>tlmgr</code>:
-                <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>sudo tlmgr update --self
-sudo tlmgr install latexmk xetex biber \
+                <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"><code>sudo -E tlmgr update --self
+sudo -E tlmgr install latexmk xetex biber \
   datetime2 footmisc comment geometry fontspec \
   langsci-gb4e forest qtree tipa csquotes biblatex xparse \
   setspace enumitem ragged2e needspace placeins float longtable \

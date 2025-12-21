@@ -2,7 +2,7 @@
   "name": "lingtex",
   "displayName": "LingTeX",
   "description": "Linguistics authoring helpers for LaTeX (works with LaTeX Workshop & LaTeX Utilities).",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "publisher": "rulingAnts",
   "repository": {
     "type": "git",
