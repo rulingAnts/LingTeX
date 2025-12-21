@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2025-12-21)
+- Auto-Preview Pane: Stability improvements. New editors opened while the bottom PDF is focused now move to the top and stay open (pinned) instead of closing. The single-PDF scenario reliably reopens the main TeX on top and keeps the main PDF in the bottom.
+- Settings Panel: Main PDF picker integrates with auto-preview state (disabled tooltip when unset). Workspace folder selection continues to persist across sessions.
+- Implementation details: Moving tabs uses `moveActiveEditor` with small delays and pinning via `keepEditor` to minimize focus churn and prevent preview closures.
+
 ## 0.2.0 (2025-12-20)
 - Fix: `lingtex.tex.mainFile` input in the Settings panel now updates immediately after browsing, preventing `Save All Settings` from overwriting it with an empty value.
 - Change: Marked LingTeX settings as resource-scoped so per-folder (`WorkspaceFolder`) settings are supported and saved into each folder’s `.vscode/settings.json`.
