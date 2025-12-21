@@ -26,6 +26,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures')
       ,tex_mainFile: cfg.get<string>('tex.mainFile', '')
       ,tex_mainPdf: cfg.get<string>('tex.mainPdf', '')
+      ,preview_autoPreviewPane: cfg.get<boolean>('preview.autoPreviewPane', false)
       ,folders: folders.map(f => ({ name: f.name, path: f.uri.fsPath }))
       ,selectedFolderIndex: this.currentFolderIndex
     };
@@ -48,6 +49,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           figure_outputDir: cfg2.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures'),
           tex_mainFile: cfg2.get<string>('tex.mainFile', ''),
           tex_mainPdf: cfg2.get<string>('tex.mainPdf', ''),
+          preview_autoPreviewPane: cfg2.get<boolean>('preview.autoPreviewPane', false),
           folders: folders2.map(f => ({ name: f.name, path: f.uri.fsPath })),
           selectedFolderIndex: this.currentFolderIndex
         };
@@ -104,6 +106,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures'),
             tex_mainFile: cfg.get<string>('tex.mainFile', ''),
             tex_mainPdf: cfg.get<string>('tex.mainPdf', ''),
+            preview_autoPreviewPane: cfg.get<boolean>('preview.autoPreviewPane', false),
             folders: (vscode.workspace.workspaceFolders||[]).map(f => ({ name: f.name, path: f.uri.fsPath })),
             selectedFolderIndex: i
           };
@@ -515,6 +518,11 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <input type="text" id="excel_filenameTemplate" value="${this.escapeAttr(state.excel_filenameTemplate)}" />
           </div>
           <div class="row">
+            <input type="checkbox" id="preview_autoPreviewPane" ${state.preview_autoPreviewPane ? 'checked' : ''} />
+            <label for="preview_autoPreviewPane">Auto-Preview Pane</label>
+          </div>
+          <div class="help" style="margin:0 0 8px;">Keeps your main TeX open at the top and your main PDF open at the bottom. Non-PDF tabs are moved to the top.</div>
+          <div class="row">
             <label style="min-width:130px;">Translation spacing (before):</label>
             <select id="inter_beforeSkip">
               ${['none','smallskip','medskip','bigskip'].map((v:string)=>`<option value="${v}" ${state.inter_beforeSkip===v?'selected':''}>${v}</option>`).join('')}
@@ -619,6 +627,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               'lingtex.interlinear.openupGlossAmount': (document.getElementById('inter_openupGlossAmount').value || '').trim(),
               'lingtex.tex.mainFile': (document.getElementById('tex_mainFile').value || '').trim(),
               'lingtex.tex.mainPdf': (document.getElementById('tex_mainPdf').value || '').trim(),
+              'lingtex.preview.autoPreviewPane': !!(document.getElementById('preview_autoPreviewPane').checked),
             };
             vscode.postMessage({ type: 'updateSettings', entries });
           });
@@ -634,6 +643,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               'lingtex.interlinear.openupGlossAmount': '1em',
               'lingtex.tex.mainFile': '',
               'lingtex.tex.mainPdf': ''
+              ,'lingtex.preview.autoPreviewPane': false
             };
             document.getElementById('tables_outputDir').value = entries['lingtex.tables.outputDir'];
             document.getElementById('figure_outputDir').value = entries['lingtex.figure.outputDir'];
@@ -645,6 +655,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             document.getElementById('inter_openupGlossAmount').value = entries['lingtex.interlinear.openupGlossAmount'];
             document.getElementById('tex_mainFile').value = entries['lingtex.tex.mainFile'];
             document.getElementById('tex_mainPdf').value = entries['lingtex.tex.mainPdf'];
+            document.getElementById('preview_autoPreviewPane').checked = entries['lingtex.preview.autoPreviewPane'];
             vscode.postMessage({ type: 'updateSettings', entries });
           });
         </script>

@@ -235,6 +235,12 @@
           "description": "Selected root folder index for the LingTeX panel (workspace-level).",
           "scope": "window",
           "minimum": 0
+        },
+        "lingtex.preview.autoPreviewPane": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-manage preview: keep main TeX open in the top group and main PDF open in the bottom group (resource-scoped per workspace folder).",
+          "scope": "resource"
         }
       }
     }

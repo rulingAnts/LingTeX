@@ -142,6 +142,7 @@ Tip (macOS): to use the `code` CLI for VSIX installs, run Command Palette → �
 - `lingtex.tex.mainPdf`: Path to your primary compiled PDF (e.g., `${workspaceFolder}/build/main.pdf`). Used by the panel and future features to open/reference the document.
 - `lingtex.interlinear.openupGlossAmount`: Interlinear line spacing passed to `\openup` before gloss lines (e.g., `1em` or `6pt`). Spacing before/after the free translation is automatically set to 50% of this value.
  - `lingtex.ui.selectedFolderIndex`: Workspace-level index of the selected root folder for the LingTeX panel.
+ - `lingtex.preview.autoPreviewPane`: Keeps your main TeX open in the top group and your main PDF open in the bottom group (per-folder).
 
 Panel tips:
 - Use “Browse Tables Dir…” and “Browse Figures Dir…” to pick folders. Selected paths inside the repo are saved as `${workspaceFolder}/…` for portability.
