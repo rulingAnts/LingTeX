@@ -2,7 +2,7 @@
   "name": "lingtex",
   "displayName": "LingTeX",
   "description": "Linguistics authoring helpers for LaTeX (works with LaTeX Workshop & LaTeX Utilities).",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publisher": "rulingAnts",
   "repository": {
     "type": "git",
@@ -121,18 +121,54 @@
     ],
     "menus": {
       "commandPalette": [
-        { "command": "lingtex.convertExcelToTabularx", "when": "false" },
-        { "command": "lingtex.convertXLingPaperXmlToExcel", "when": "false" },
-        { "command": "lingtex.tsvToTabularx", "when": "false" },
-        { "command": "lingtex.acceptTsvToTabularx", "when": "false" },
-        { "command": "lingtex.cancelTsvToTabularx", "when": "false" },
-        { "command": "lingtex.tsvToInterlinear", "when": "false" },
-        { "command": "lingtex.acceptTsvToInterlinear", "when": "false" },
-        { "command": "lingtex.cancelTsvToInterlinear", "when": "false" },
-        { "command": "lingtex.tabularxToExcel", "when": "false" },
-        { "command": "lingtex.findMissingGlosses", "when": "false" },
-        { "command": "lingtex.sanitizeIntro", "when": "false" },
-        { "command": "lingtex.splitSections", "when": "false" }
+        {
+          "command": "lingtex.convertExcelToTabularx",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.convertXLingPaperXmlToExcel",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.tsvToTabularx",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.acceptTsvToTabularx",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.cancelTsvToTabularx",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.tsvToInterlinear",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.acceptTsvToInterlinear",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.cancelTsvToInterlinear",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.tabularxToExcel",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.findMissingGlosses",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.sanitizeIntro",
+          "when": "false"
+        },
+        {
+          "command": "lingtex.splitSections",
+          "when": "false"
+        }
       ],
       "editor/title": [
         {
@@ -221,14 +257,24 @@
         },
         "lingtex.interlinear.beforeSkip": {
           "type": "string",
-          "enum": ["none", "smallskip", "medskip", "bigskip"],
+          "enum": [
+            "none",
+            "smallskip",
+            "medskip",
+            "bigskip"
+          ],
           "default": "smallskip",
           "description": "Vertical spacing before the free translation within an example.",
           "scope": "resource"
         },
         "lingtex.interlinear.afterSkip": {
           "type": "string",
-          "enum": ["none", "smallskip", "medskip", "bigskip"],
+          "enum": [
+            "none",
+            "smallskip",
+            "medskip",
+            "bigskip"
+          ],
           "default": "medskip",
           "description": "Vertical spacing after the free translation (also separates examples).",
           "scope": "resource"
