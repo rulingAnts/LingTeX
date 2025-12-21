@@ -139,10 +139,12 @@ Tip (macOS): to use the `code` CLI for VSIX installs, run Command Palette → �
 
 - `lingtex.figure.outputDir`: Default output directory for images imported as figures (e.g., `${workspaceFolder}/misc/figures`).
 - `lingtex.tex.mainFile`: Path to the main `.tex` file. When set, imported image paths are computed relative to this file (e.g., `${workspaceFolder}/main.tex`).
+- `lingtex.tex.mainPdf`: Path to your primary compiled PDF (e.g., `${workspaceFolder}/build/main.pdf`). Used by the panel and future features to open/reference the document.
 - `lingtex.interlinear.openupGlossAmount`: Interlinear line spacing passed to `\openup` before gloss lines (e.g., `1em` or `6pt`). Spacing before/after the free translation is automatically set to 50% of this value.
 
 Panel tips:
 - Use “Browse Tables Dir…” and “Browse Figures Dir…” to pick folders. Selected paths inside the repo are saved as `${workspaceFolder}/…` for portability.
+ - Use “Browse Main TeX…” and “Browse Main PDF…” to pick your master `.tex` and compiled `.pdf`.
 
 ### Per-Folder Settings (Multi-root)
 - Settings are scoped to the selected workspace folder. Use the Folder dropdown in the Settings panel to switch which folder you’re editing.

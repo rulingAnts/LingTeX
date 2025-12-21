@@ -162,6 +162,12 @@
           "description": "Path to the main .tex file. When set, image figure paths are made relative to this file (use ${workspaceFolder}/main.tex if helpful).",
           "scope": "resource"
         },
+        "lingtex.tex.mainPdf": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the primary output PDF for your project (e.g., ${workspaceFolder}/build/main.pdf). Used by the panel and future features to open or reference the compiled document.",
+          "scope": "resource"
+        },
         "lingtex.excel.outputLocation": {
           "type": "string",
           "enum": [

@@ -21,6 +21,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       inter_openupGlossAmount: cfg.get<string>('interlinear.openupGlossAmount', '1em'),
       figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures')
       ,tex_mainFile: cfg.get<string>('tex.mainFile', '')
+      ,tex_mainPdf: cfg.get<string>('tex.mainPdf', '')
       ,folders: folders.map(f => ({ name: f.name, path: f.uri.fsPath }))
       ,selectedFolderIndex: this.currentFolderIndex
     };
@@ -42,6 +43,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           inter_openupGlossAmount: cfg2.get<string>('interlinear.openupGlossAmount', '1em'),
           figure_outputDir: cfg2.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures'),
           tex_mainFile: cfg2.get<string>('tex.mainFile', ''),
+          tex_mainPdf: cfg2.get<string>('tex.mainPdf', ''),
           folders: folders2.map(f => ({ name: f.name, path: f.uri.fsPath })),
           selectedFolderIndex: this.currentFolderIndex
         };
@@ -84,6 +86,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             inter_openupGlossAmount: cfg.get<string>('interlinear.openupGlossAmount', '1em'),
             figure_outputDir: cfg.get<string>('figure.outputDir', '${workspaceFolder}/misc/figures'),
             tex_mainFile: cfg.get<string>('tex.mainFile', ''),
+            tex_mainPdf: cfg.get<string>('tex.mainPdf', ''),
             folders: (vscode.workspace.workspaceFolders||[]).map(f => ({ name: f.name, path: f.uri.fsPath })),
             selectedFolderIndex: i
           };
@@ -299,12 +302,14 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           const key = String(msg.key);
           const wf = vscode.workspace.workspaceFolders?.[this.currentFolderIndex];
           const rootUri = wf?.uri;
+          // Choose filters based on key
+          const filter: { [name: string]: string[] } = key.includes('mainPdf') ? { PDF: ['pdf'] } : { TeX: ['tex'] };
           const picks = await vscode.window.showOpenDialog({
             canSelectFiles: true,
             canSelectFolders: false,
             canSelectMany: false,
             defaultUri: rootUri,
-            filters: { TeX: ['tex'] }
+            filters: filter
           });
           if (!picks || !picks.length) return;
           const chosen = picks[0];
@@ -476,6 +481,13 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <input type="text" id="tex_mainFile" value="${this.escapeAttr(state.tex_mainFile)}" disabled />
           </div>
           <div class="row">
+            <label style="min-width:130px;">Main output PDF:</label>
+            <button class="btn" id="btnBrowseMainPdfFile">Browse…</button>
+          </div>
+          <div class="row">
+            <input type="text" id="tex_mainPdf" value="${this.escapeAttr(state.tex_mainPdf)}" disabled />
+          </div>
+          <div class="row">
             <label style="min-width:130px;">Excel output location:</label>
             <select id="excel_outputLocation">
               ${['downloads','documents','workspace','prompt'].map((v:string)=>`<option value="${v}" ${state.excel_outputLocation===v?'selected':''}>${v}</option>`).join('')}
@@ -546,6 +558,9 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                     document.getElementById('btnBrowseMainTexFile').addEventListener('click', () => {
                       vscode.postMessage({ type: 'chooseFile', key: 'lingtex.tex.mainFile' });
                     });
+                    document.getElementById('btnBrowseMainPdfFile').addEventListener('click', () => {
+                      vscode.postMessage({ type: 'chooseFile', key: 'lingtex.tex.mainPdf' });
+                    });
 
                     window.addEventListener('message', (ev) => {
                       const msg = ev.data;
@@ -586,6 +601,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               'lingtex.interlinear.useOpenup': !!(document.getElementById('inter_useOpenup').checked),
               'lingtex.interlinear.openupGlossAmount': (document.getElementById('inter_openupGlossAmount').value || '').trim(),
               'lingtex.tex.mainFile': (document.getElementById('tex_mainFile').value || '').trim(),
+              'lingtex.tex.mainPdf': (document.getElementById('tex_mainPdf').value || '').trim(),
             };
             vscode.postMessage({ type: 'updateSettings', entries });
           });
@@ -599,7 +615,8 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               'lingtex.interlinear.afterSkip': 'medskip',
               'lingtex.interlinear.useOpenup': true,
               'lingtex.interlinear.openupGlossAmount': '1em',
-              'lingtex.tex.mainFile': ''
+              'lingtex.tex.mainFile': '',
+              'lingtex.tex.mainPdf': ''
             };
             document.getElementById('tables_outputDir').value = entries['lingtex.tables.outputDir'];
             document.getElementById('figure_outputDir').value = entries['lingtex.figure.outputDir'];
@@ -610,6 +627,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             document.getElementById('inter_useOpenup').checked = entries['lingtex.interlinear.useOpenup'];
             document.getElementById('inter_openupGlossAmount').value = entries['lingtex.interlinear.openupGlossAmount'];
             document.getElementById('tex_mainFile').value = entries['lingtex.tex.mainFile'];
+            document.getElementById('tex_mainPdf').value = entries['lingtex.tex.mainPdf'];
             vscode.postMessage({ type: 'updateSettings', entries });
           });
         </script>
