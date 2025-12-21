@@ -518,10 +518,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <input type="text" id="excel_filenameTemplate" value="${this.escapeAttr(state.excel_filenameTemplate)}" />
           </div>
           <div class="row">
-            <input type="checkbox" id="preview_autoPreviewPane" ${state.preview_autoPreviewPane ? 'checked' : ''} />
-            <label for="preview_autoPreviewPane">Auto-Preview Pane</label>
+            <input type="checkbox" id="preview_autoPreviewPane" ${state.preview_autoPreviewPane && state.tex_mainPdf ? 'checked' : ''} ${state.tex_mainPdf ? '' : 'disabled'} title="${state.tex_mainPdf ? 'Keeps main TeX top and main PDF bottom.' : 'Set “Main output PDF” to enable Auto-Preview.'}" />
+            <label for="preview_autoPreviewPane" title="${state.tex_mainPdf ? 'Auto-Preview Pane' : 'Set “Main output PDF” to enable Auto-Preview.'}">Auto-Preview Pane</label>
           </div>
-          <div class="help" style="margin:0 0 8px;">Keeps your main TeX open at the top and your main PDF open at the bottom. Non-PDF tabs are moved to the top.</div>
+          <div class="help" style="margin:0 0 8px;">Keeps your main TeX open at the top and your main PDF open at the bottom. Non-PDF tabs are moved to the top.${state.tex_mainPdf ? '' : ' Set “Main output PDF” to enable Auto-Preview.'}</div>
           <div class="row">
             <label style="min-width:130px;">Translation spacing (before):</label>
             <select id="inter_beforeSkip">
@@ -627,7 +627,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               'lingtex.interlinear.openupGlossAmount': (document.getElementById('inter_openupGlossAmount').value || '').trim(),
               'lingtex.tex.mainFile': (document.getElementById('tex_mainFile').value || '').trim(),
               'lingtex.tex.mainPdf': (document.getElementById('tex_mainPdf').value || '').trim(),
-              'lingtex.preview.autoPreviewPane': !!(document.getElementById('preview_autoPreviewPane').checked),
+              'lingtex.preview.autoPreviewPane': ((document.getElementById('tex_mainPdf').value || '').trim() ? !!(document.getElementById('preview_autoPreviewPane').checked) : false),
             };
             vscode.postMessage({ type: 'updateSettings', entries });
           });
