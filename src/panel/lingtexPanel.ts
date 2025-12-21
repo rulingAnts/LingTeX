@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { detectTexEnvironment } from '../features/texEnvironment';
 
 export class LingTeXViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewId = 'lingtex.panel';
@@ -34,11 +35,18 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       ,selectedFolderIndex: this.currentFolderIndex
       ,depsOk
       ,missing: { workshop: !hasWorkshop, utilities: !hasUtilities }
+      ,texEnvOk: true
     };
     webviewView.webview.html = depsOk ? this.getHtml(webviewView.webview, state) : this.getHtmlMissing(webviewView.webview, state);
 
+    // Detect TeX environment asynchronously and refresh UI state with prominent warning if missing
+    detectTexEnvironment().then(env => {
+      const refreshed = { ...state, texEnvOk: !!env?.texFound };
+      webviewView.webview.html = depsOk ? this.getHtml(webviewView.webview, refreshed) : this.getHtmlMissing(webviewView.webview, refreshed);
+    }).catch(()=>{});
+
     // Auto-refresh panel when settings or workspace folders change
-    const refreshFromConfig = () => {
+    const refreshFromConfig = async () => {
       try {
         const folders2 = vscode.workspace.workspaceFolders || [];
         const scopeUri2 = folders2[this.currentFolderIndex]?.uri;
@@ -46,6 +54,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         const hasWorkshop2 = !!vscode.extensions.getExtension('James-Yu.latex-workshop');
         const hasUtilities2 = !!vscode.extensions.getExtension('tecosaur.latex-utilities');
         const depsOk2 = hasWorkshop2 && hasUtilities2;
+        const env2 = await detectTexEnvironment().catch(()=>({ texFound: true } as any));
         const newState = {
           tables_outputDir: cfg2.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
           excel_outputLocation: cfg2.get<string>('excel.outputLocation', 'downloads'),
@@ -61,7 +70,8 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           folders: folders2.map(f => ({ name: f.name, path: f.uri.fsPath })),
           selectedFolderIndex: this.currentFolderIndex,
           depsOk: depsOk2,
-          missing: { workshop: !hasWorkshop2, utilities: !hasUtilities2 }
+          missing: { workshop: !hasWorkshop2, utilities: !hasUtilities2 },
+          texEnvOk: !!env2?.texFound
         };
         webviewView.webview.html = depsOk2 ? this.getHtml(webviewView.webview, newState) : this.getHtmlMissing(webviewView.webview, newState);
       } catch (e) {
@@ -76,7 +86,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           const len = vscode.workspace.workspaceFolders?.length || 0;
           this.currentFolderIndex = Math.max(0, Math.min(Math.max(0, len - 1), Number(idx) || 0));
         }
-        refreshFromConfig();
+        refreshFromConfig().catch(()=>{});
       }
     });
     this.context.subscriptions.push(cfgDisposable);
@@ -88,7 +98,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         const cfgWin = vscode.workspace.getConfiguration('lingtex');
         cfgWin.update('ui.selectedFolderIndex', this.currentFolderIndex, vscode.ConfigurationTarget.Workspace);
       } catch {}
-      refreshFromConfig();
+      refreshFromConfig().catch(()=>{});
     });
     this.context.subscriptions.push(wfDisposable);
 
@@ -404,6 +414,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       .cmds { display: grid; grid-template-columns: 1fr; gap: 4px; }
       .help { color: var(--vscode-descriptionForeground); font-size: 12px; }
       .logo { display:block; height: 95px; margin: 0 auto 6px; clip-path: inset(30% 0 25% 0); }
+      .warn { border: 2px solid #b30000; background: #ffdddd; color: #660000; padding: 10px; margin: 10px 0; border-radius: 4px; }
     `;
 
     return `
@@ -423,6 +434,18 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         LingTeX is a VSCode extension for linguists working with LaTeX. It provides tools for generating interlinear glosses, LaTeX tables from TSV data, and inserting figures. More info: <a href="https://rulingants.github.io/LingTeX">GitHub</a>.
         </div>
 
+        ${state.texEnvOk ? '' : `
+        <div class="warn">
+          <strong>No TeX distribution detected.</strong>
+          <div class="help" style="margin-top:6px;">Install a TeX environment to enable compiling and package checks.</div>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button class="btn" data-cmd="lingtex.tex.checkEnvironment">Check Environment</button>
+            <button class="btn" data-cmd="lingtex.tex.installDistribution">Install TeX Distribution</button>
+            <button class="btn" data-cmd="lingtex.tex.checkPreamblePackages">Check Preamble Packages</button>
+          </div>
+        </div>
+        `}
+
         ${state.depsOk ? '' : `
         <div style="border:1px solid var(--vscode-input-border); background: var(--vscode-input-background); padding:12px; margin:12px 0;">
           <strong>Required extensions missing</strong>
@@ -440,6 +463,15 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         `}
 
         <div id="ltx_controls" style="${state.depsOk ? '' : 'display:none;'}">
+        <details ${state.texEnvOk ? '' : 'open'}>
+          <summary><strong>TeX Environment</strong></summary>
+          <div class="help" style="margin:4px 0 8px;">Detect and install a TeX distribution, and verify missing packages from your preamble.</div>
+          <div class="row" style="gap:8px;">
+            <button class="btn" data-cmd="lingtex.tex.checkEnvironment">Check Environment</button>
+            <button class="btn" data-cmd="lingtex.tex.installDistribution">Install TeX Distribution</button>
+            <button class="btn" data-cmd="lingtex.tex.checkPreamblePackages">Check Preamble Packages</button>
+          </div>
+        </details>
         <details>
           <summary><strong>Paste FLEx Interlinear</strong></summary>
           <div class="help" style="margin:4px 0 8px;">
