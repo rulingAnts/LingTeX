@@ -123,12 +123,26 @@ Troubleshooting: If VS Code reports an invalid VSIX, re-download from Releases. 
 - The panel provides buttons for all features and simple forms for common options (e.g., TSV → Interlinear output mode, Excel export destination).
 - Use the Quick Actions to open TSV templates or run conversions without the Command Palette.
 
+### TeX Environment helpers
+- LingTeX detects whether a TeX distribution is available. If none is found, the panel shows a bright red warning banner with quick actions to:
+	- Check Environment (detect `latexmk`, `pdflatex`/`xelatex`/`lualatex`, `kpsewhich`, `tlmgr`)
+	- Install TeX Distribution (cross-platform helper opens a terminal and runs an appropriate installer)
+	- Check Preamble Packages (parse `\usepackage{...}` and offer to install missing packages)
+- Safety guard: If a TeX environment appears installed, clicking Install prompts with a modal dialog offering “Install anyway”, “Check Environment”, “Check Packages”, or “Cancel”. This prevents accidental reinstalls or dual installs.
+- Platform notes:
+	- macOS: Uses Homebrew when available; otherwise downloads and runs `BasicTeX.pkg`, then runs `tlmgr` steps (`update --self`, install `latexmk`). PATH `/Library/TeX/texbin` is set for the terminal session.
+	- Linux: Detects common package managers (`apt`, `dnf`, `yum`, `pacman`, `zypper`) and runs Minimal or Full installs. Some distros ship older packages; prefer TeX Live upstream when needed.
+	- Windows: Installs MiKTeX or TeX Live via `winget` or `choco`. Windows can support dual installs; prefer one distribution and ensure the desired binaries are on PATH.
+
 ## Commands
 LingTeX now uses a panel-only UX. Commands are hidden from the Command Palette; launch actions from the LingTeX panel in the Activity Bar. Title bar actions (Generate/Cancel) appear contextually when using TSV templates.
 
 ## Requirements
 - Visual Studio Code (required): download from https://code.visualstudio.com/
 - Recommended: LaTeX Workshop, LaTeX Utilities
+
+TeX distribution:
+- LingTeX includes helpers to install and check TeX across macOS, Linux, and Windows, but you can also follow the manual steps above. If you already have TeX, the panel’s installer will prompt before proceeding.
 
 Tip (macOS): to use the `code` CLI for VSIX installs, run Command Palette → “Shell Command: Install 'code' command in PATH”.
 

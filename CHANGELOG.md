@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 (2025-12-21)
+- Panel: Added TeX Environment section with buttons to check environment, install a distribution, and check/install missing preamble packages. The section auto-opens when no TeX is detected.
+- Warning: A prominent red warning band appears at the top of the panel when no TeX distribution is found, with quick actions.
+- Cross-platform installers: macOS (Homebrew path with fallback to downloading BasicTeX.pkg), Linux (apt/dnf/yum/pacman/zypper), Windows (winget/choco for MiKTeX or TeX Live).
+- Safety guard: Before running any install, if a TeX environment is already detected, a modal prompt offers “Install anyway”, “Check Environment”, “Check Packages”, or “Cancel” to avoid accidental reinstalls or dual installs.
+
 ## 0.2.1 (2025-12-21)
 - Auto-Preview Pane: Stability improvements. New editors opened while the bottom PDF is focused now move to the top and stay open (pinned) instead of closing. The single-PDF scenario reliably reopens the main TeX on top and keeps the main PDF in the bottom.
 - Settings Panel: Main PDF picker integrates with auto-preview state (disabled tooltip when unset). Workspace folder selection continues to persist across sessions.

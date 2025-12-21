@@ -165,6 +165,20 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
   context.subscriptions.push(installPkgs);
 
   const installDistribution = vscode.commands.registerCommand('lingtex.tex.installDistribution', async () => {
+    const env = await detectTexEnvironment();
+    if (env.texFound) {
+      const choice = await vscode.window.showWarningMessage(
+        'A TeX distribution appears to be installed. Installing again may reinstall or add a second distribution. What would you like to do?',
+        { modal: true },
+        'Install anyway',
+        'Check Environment',
+        'Check Packages',
+        'Cancel'
+      );
+      if (choice === 'Check Environment') { await vscode.commands.executeCommand('lingtex.tex.checkEnvironment'); return; }
+      if (choice === 'Check Packages') { await vscode.commands.executeCommand('lingtex.tex.checkPreamblePackages'); return; }
+      if (choice !== 'Install anyway') return;
+    }
     const term = vscode.window.createTerminal({ name: 'LingTeX: Install TeX distribution' });
     term.show();
     if (process.platform === 'darwin') {
