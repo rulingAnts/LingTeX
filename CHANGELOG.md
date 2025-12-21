@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 (2025-12-21)
+- Panel: Removed always-visible “Install TeX Distribution” buttons. Instead, “Check Environment” now offers to install when no TeX environment is detected (with a link to the install guide).
+- Docs: Updated README and website to reflect the new flow.
+
 ## 0.2.3 (2025-12-21)
 - Packages: New command “Install Recommended Packages” installs a curated set for linguistics papers (fontspec, biblatex/biber, gb4e/langsci-gb4e, forest, qtree, tipa, tables/graphics, and more). If a main TeX file is set, missing preamble packages are merged into the install list.
 - Cross-platform: Uses `tlmgr` (TeX Live/MacTeX) and falls back to `mpm --admin` (MiKTeX) on Windows. macOS installs the recommended set automatically right after BasicTeX.

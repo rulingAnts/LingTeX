@@ -125,11 +125,10 @@ Troubleshooting: If VS Code reports an invalid VSIX, re-download from Releases. 
 
 ### TeX Environment helpers
 - LingTeX detects whether a TeX distribution is available. If none is found, the panel shows a bright red warning banner with quick actions to:
-	- Check Environment (detect `latexmk`, `pdflatex`/`xelatex`/`lualatex`, `kpsewhich`, `tlmgr`)
-	- Install TeX Distribution (cross-platform helper opens a terminal and runs an appropriate installer)
+	- Check Environment (detect `latexmk`, `pdflatex`/`xelatex`/`lualatex`, `kpsewhich`, `tlmgr`). If no TeX is detected, a modal prompt offers to install a distribution or open the Install Guide.
 	- Check Preamble Packages (parse `\usepackage{...}` and offer to install missing packages)
-- Safety guard: If a TeX environment appears installed, clicking Install prompts with a modal dialog offering “Install anyway”, “Check Environment”, “Check Packages”, or “Cancel”. This prevents accidental reinstalls or dual installs.
- - Recommended packages: Use “Install Recommended Packages” to install a curated set for linguistics (fontspec, biblatex/biber, gb4e/langsci-gb4e, forest, qtree, tipa, tables/graphics, glossaries, cross-references, and more). If your main TeX is set, LingTeX merges any missing preamble packages into the install list.
+ - Recommended packages: Use “Install Recommended Packages” to install a curated set for linguistics (fontspec, biblatex/biber, gb4e/langsci-gb4e, forest, qtree, tipa, tables/graphics, glossaries, cross-references, and more). If your main TeX is set, LingTeX merges any missing preamble packages into the install list. This option appears when a TeX environment is available.
+ - Safety guard: If a TeX environment appears installed and you choose to install anyway, a modal dialog warns about conflicts and places “Cancel” first to discourage accidental reinstalls.
 - Platform notes:
 	- macOS: Uses Homebrew when available; otherwise downloads and runs `BasicTeX.pkg`, then runs `tlmgr` steps (`update --self`, install `latexmk`). PATH `/Library/TeX/texbin` is set for the terminal session.
 	  After install, LingTeX also installs the recommended linguistics packages automatically (via `tlmgr`).
