@@ -16,9 +16,9 @@ async function ensureGroupSplitDown(): Promise<void> {
   }
 }
 
-async function openUriInColumn(uri: vscode.Uri, col: vscode.ViewColumn): Promise<void> {
+async function openUriInColumn(uri: vscode.Uri, col: vscode.ViewColumn, preserveFocus: boolean = true): Promise<void> {
   try {
-    await vscode.commands.executeCommand('vscode.open', uri, { viewColumn: col, preserveFocus: true, preview: true });
+    await vscode.commands.executeCommand('vscode.open', uri, { viewColumn: col, preserveFocus, preview: true });
   } catch {}
 }
 
@@ -39,9 +39,12 @@ function tabUri(tab: vscode.Tab | undefined): vscode.Uri | undefined {
 // Fallback move: if no URI is available, we skip moving to avoid focus churn.
 
 let isEnforcing = false;
+let cooldownUntil = 0;
 async function enforceLayout(): Promise<void> {
   const folders = vscode.workspace.workspaceFolders || [];
   if (!folders.length) return;
+  const now = Date.now();
+  if (now < cooldownUntil) return;
   // Read selected folder index (workspace-level)
   const winCfg = vscode.workspace.getConfiguration('lingtex');
   const idxRaw = winCfg.get<number>('ui.selectedFolderIndex', 0) ?? 0;
@@ -69,7 +72,7 @@ async function enforceLayout(): Promise<void> {
       const u = tabUri(tb); return !!u && u.fsPath === mainPdfPath;
     });
     if (!bottomHasMainPdf) {
-      await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.Two);
+      await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.Two, true);
     }
   }
 
@@ -78,15 +81,25 @@ async function enforceLayout(): Promise<void> {
     const groups = vscode.window.tabGroups.all;
     const bottom = groups[1];
     if (bottom) {
+      const origEditor = vscode.window.activeTextEditor;
+      const origUri = origEditor?.document?.uri;
+      const origCol = origEditor?.viewColumn ?? vscode.ViewColumn.One;
       for (const tb of bottom.tabs) {
         const u = tabUri(tb);
         const isMainPdf = !!u && u.fsPath === mainPdfPath;
         if (!isMainPdf && u) {
-          await openUriInColumn(u, vscode.ViewColumn.One);
+          // Activate the bottom tab, move it up, then restore original focus
+          await openUriInColumn(u, vscode.ViewColumn.Two, false);
+          await vscode.commands.executeCommand('workbench.action.moveEditorToAboveGroup');
+          if (origUri) {
+            await openUriInColumn(origUri, origCol, false);
+          }
         }
       }
     }
   } catch {}
+  // Set a short cooldown to avoid immediate re-enforcement on tab-change events caused by our moves
+  cooldownUntil = Date.now() + 400;
   isEnforcing = false;
 }
 
@@ -94,13 +107,13 @@ export function registerAutoPreviewPane(context: vscode.ExtensionContext): void 
   let timer: NodeJS.Timeout | undefined;
   const schedule = () => {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => { enforceLayout().catch(()=>{}); }, 150);
+    timer = setTimeout(() => { enforceLayout().catch(()=>{}); }, 300);
   };
 
   // React only to the requested events
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('lingtex.preview.autoPreviewPane')) schedule();
+      if (e.affectsConfiguration('lingtex.preview.autoPreviewPane') || e.affectsConfiguration('lingtex.ui.selectedFolderIndex')) schedule();
     }),
     (vscode.window.tabGroups as any).onDidChangeTabs?.((ev: any) => {
       try {
