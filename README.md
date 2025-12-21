@@ -16,11 +16,11 @@ We recommend TeX Live/MacTeX without a GUI editor and installing required packag
 #### macOS (MacTeX/BasicTeX)
 - BasicTeX (smaller, no GUI): https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg
 - Full MacTeX: https://tug.org/mactex/
-- Install required tools and packages with `tlmgr`:
+- Install required tools and packages with `tlmgr` (admin privileges required):
 
 ```
-sudo tlmgr update --self
-sudo tlmgr install latexmk xetex biber \
+sudo -E tlmgr update --self
+sudo -E tlmgr install latexmk xetex biber \
 	datetime2 footmisc comment geometry fontspec \
 	langsci-gb4e forest qtree tipa csquotes biblatex xparse \
 	setspace enumitem ragged2e needspace placeins float longtable \

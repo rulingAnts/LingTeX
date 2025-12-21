@@ -210,8 +210,13 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
       const list = combined.join(' ');
       if (tl) {
         const texbin = path.dirname(tl);
-        term.sendText(`PATH="${texbin}:$PATH" tlmgr install ${list}`);
-        vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr in terminal.');
+        if (process.platform === 'darwin') {
+          term.sendText(`sudo -E env PATH="${texbin}:$PATH" tlmgr install ${list}`);
+          vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr (sudo) in terminal.');
+        } else {
+          term.sendText(`PATH="${texbin}:$PATH" tlmgr install ${list}`);
+          vscode.window.showInformationMessage('LingTeX: Installing recommended linguistics packages via tlmgr in terminal.');
+        }
       } else if (mpm) {
         // MiKTeX: install packages via mpm (admin mode ensures system-wide)
         term.sendText('echo "Installing recommended linguistics packages via MiKTeX mpm…"');
@@ -266,11 +271,11 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
         term.sendText('brew install --cask basictex');
         term.sendText('echo "Configuring TeX Live for this shell session…"');
         term.sendText('export PATH=/Library/TeX/texbin:$PATH');
-        term.sendText('tlmgr update --self');
-        term.sendText('tlmgr install latexmk');
-        term.sendText('echo "Installing recommended linguistics packages…"');
-        term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
-        vscode.window.showInformationMessage('LingTeX: Installing BasicTeX via Homebrew and recommended packages in terminal.');
+        term.sendText('sudo -E tlmgr update --self');
+        term.sendText('sudo -E tlmgr install latexmk');
+        term.sendText('echo "Installing recommended linguistics packages (sudo)…"');
+        term.sendText('sudo -E tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
+        vscode.window.showInformationMessage('LingTeX: Installing BasicTeX via Homebrew and recommended packages (sudo) in terminal.');
       } else {
         term.sendText('echo "Homebrew not found. Downloading BasicTeX.pkg…"');
         term.sendText('curl -L -o "$HOME/Downloads/BasicTeX.pkg" https://mirror.ctan.org/systems/mac/mactex/BasicTeX.pkg');
@@ -278,10 +283,10 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
         term.sendText('sudo installer -pkg "$HOME/Downloads/BasicTeX.pkg" -target /');
         term.sendText('echo "Configuring TeX Live for this shell session…"');
         term.sendText('export PATH=/Library/TeX/texbin:$PATH');
-        term.sendText('tlmgr update --self');
-        term.sendText('tlmgr install latexmk');
-        term.sendText('echo "Installing recommended linguistics packages…"');
-        term.sendText('tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
+        term.sendText('sudo -E tlmgr update --self');
+        term.sendText('sudo -E tlmgr install latexmk');
+        term.sendText('echo "Installing recommended linguistics packages (sudo)…"');
+        term.sendText('sudo -E tlmgr install fontspec datetime2 footmisc comment geometry csquotes biblatex biblatex-apa biber setspace enumitem ragged2e needspace placeins longtable tabularx array multirow makecell booktabs diagbox xcolor tcolorbox caption glossaries-extra etoolbox ulem fancyhdr hyperref cleveref pdflscape l3packages forest pgf qtree tipa langsci-gb4e gb4e');
         vscode.window.showInformationMessage('LingTeX: Downloaded BasicTeX and started installer in terminal.');
       }
     } else if (process.platform === 'linux') {
