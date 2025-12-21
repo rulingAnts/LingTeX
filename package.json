@@ -275,7 +275,8 @@
     "lint": "echo 'No lint configured'",
     "test": "echo 'No tests yet'",
     "bundle": "npm run clean && esbuild src/extension.ts --bundle --external:vscode --platform=node --format=cjs --sourcemap --minify --outfile=dist/extension.js --target=node18",
-    "package": "npx @vscode/vsce package"
+    "package": "npx @vscode/vsce package",
+    "release": "node scripts/release.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

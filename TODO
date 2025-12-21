@@ -14,3 +14,7 @@
 - [ ] Verify listing, install from Marketplace
 - [ ] Plan stable release: bump version, draft notes, `npx @vscode/vsce publish`
 - [ ] Optional: Add badges (Marketplace installs, version) to README
+
+# Project roadmap items
+- [ ] Help user select XeLaTeX as the recipe and configure it to work with biber and abbreviations
+- [ ] Help the user with the TeX install process (guided UX, download links, and safe package installs)
