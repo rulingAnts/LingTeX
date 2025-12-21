@@ -134,7 +134,21 @@ export function registerTexEnvironment(context: vscode.ExtensionContext): void {
     msgs.push(env.texFound ? 'TeX distribution detected.' : 'No TeX distribution found.');
     msgs.push(env.kpseFound ? 'kpsewhich available.' : 'kpsewhich not found.');
     msgs.push(env.tlmgrFound ? 'tlmgr available.' : 'tlmgr not found.');
-    vscode.window.showInformationMessage('LingTeX: ' + msgs.join(' '));
+    if (env.texFound) {
+      vscode.window.showInformationMessage('LingTeX: ' + msgs.join(' '));
+    } else {
+      const choice = await vscode.window.showWarningMessage(
+        'LingTeX: No TeX environment detected. Install now?',
+        { modal: true },
+        'Install TeX Distribution',
+        'Open Install Guide',
+        'Cancel'
+      );
+      if (choice === 'Install TeX Distribution') { await vscode.commands.executeCommand('lingtex.tex.installDistribution'); }
+      else if (choice === 'Open Install Guide') {
+        vscode.env.openExternal(vscode.Uri.parse('https://rulingants.github.io/LingTeX/install.html'));
+      }
+    }
   });
   context.subscriptions.push(checkEnv);
 

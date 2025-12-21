@@ -437,12 +437,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         ${state.texEnvOk ? '' : `
         <div class="warn">
           <strong>No TeX distribution detected.</strong>
-          <div class="help" style="margin-top:6px;">Install a TeX environment to enable compiling and package checks.</div>
+          <div class="help" style="margin-top:6px;">Run Check Environment to confirm. If none is found, you will be prompted to install.</div>
           <div style="margin-top:8px; display:flex; gap:8px;">
             <button class="btn" data-cmd="lingtex.tex.checkEnvironment">Check Environment</button>
-            <button class="btn" data-cmd="lingtex.tex.installDistribution">Install TeX Distribution</button>
             <button class="btn" data-cmd="lingtex.tex.checkPreamblePackages">Check Preamble Packages</button>
-            <button class="btn" data-cmd="lingtex.tex.installRecommendedPackages">Install Recommended Packages</button>
           </div>
         </div>
         `}
@@ -469,9 +467,8 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           <div class="help" style="margin:4px 0 8px;">Detect and install a TeX distribution, and verify missing packages from your preamble.</div>
           <div class="row" style="gap:8px;">
             <button class="btn" data-cmd="lingtex.tex.checkEnvironment">Check Environment</button>
-            <button class="btn" data-cmd="lingtex.tex.installDistribution">Install TeX Distribution</button>
             <button class="btn" data-cmd="lingtex.tex.checkPreamblePackages">Check Preamble Packages</button>
-            <button class="btn" data-cmd="lingtex.tex.installRecommendedPackages">Install Recommended Packages</button>
+            ${state.texEnvOk ? '<button class="btn" data-cmd="lingtex.tex.installRecommendedPackages">Install Recommended Packages</button>' : ''}
           </div>
         </details>
         <details>
