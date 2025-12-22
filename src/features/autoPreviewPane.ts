@@ -99,15 +99,13 @@ async function enforceLayout(): Promise<void> {
         await vscode.commands.executeCommand('moveActiveEditor', { to: 'down', by: 'group' });
         await vscode.commands.executeCommand('workbench.action.keepEditor');
       } else {
-        // General case below
-        const groupsNow = vscode.window.tabGroups.all;
-        const bottom = groupsNow[1];
-        const bottomHasMainPdf = !!bottom && bottom.tabs.some(tb => {
-          const u = tabUri(tb); return !!u && u.fsPath === mainPdfPath;
-        });
-        if (!bottomHasMainPdf) {
-          await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.Two, true, true);
-        }
+        // Ensure a bottom group exists and place the PDF there (not right)
+        await ensureGroupSplitDown();
+        // Check if PDF already in any bottom group (group index 1 may still be right; always move down for reliability)
+        await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.One, false, true);
+        await new Promise(res => setTimeout(res, 75));
+        await vscode.commands.executeCommand('moveActiveEditor', { to: 'down', by: 'group' });
+        await vscode.commands.executeCommand('workbench.action.keepEditor');
         // If top is empty and we have a main TeX configured, open it to avoid full-screen PDF
         const top = vscode.window.tabGroups.all[0];
         if (top && top.tabs.length === 0 && mainTexPath) {
@@ -115,15 +113,13 @@ async function enforceLayout(): Promise<void> {
         }
       }
     } else {
-      // Open main PDF in bottom group if not already present; opening in column Two will create the group if absent
-      const groupsNow = vscode.window.tabGroups.all;
-      const bottom = groupsNow[1];
-      const bottomHasMainPdf = !!bottom && bottom.tabs.some(tb => {
-        const u = tabUri(tb); return !!u && u.fsPath === mainPdfPath;
-      });
-      if (!bottomHasMainPdf) {
-        await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.Two, true, true);
-      }
+      // General case: ensure a bottom group exists and put the PDF there
+      await ensureGroupSplitDown();
+      // If the PDF is not currently active, open/focus it briefly, then move it down to the bottom group
+      await openUriInColumn(vscode.Uri.file(mainPdfPath), vscode.ViewColumn.One, false, true);
+      await new Promise(res => setTimeout(res, 75));
+      await vscode.commands.executeCommand('moveActiveEditor', { to: 'down', by: 'group' });
+      await vscode.commands.executeCommand('workbench.action.keepEditor');
       // If top is empty and we have a main TeX configured, open it to avoid full-screen PDF
       const top = vscode.window.tabGroups.all[0];
       if (top && top.tabs.length === 0 && mainTexPath) {
