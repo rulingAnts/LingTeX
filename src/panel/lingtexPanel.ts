@@ -383,34 +383,50 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           const editor = vscode.window.activeTextEditor;
           if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
           const map: Record<string, string> = {
-            part: '\\part{${1:${TM_SELECTED_TEXT}}}$0',
-            chapter: '\\chapter{${1:${TM_SELECTED_TEXT}}}$0',
-            section: '\\section{${1:${TM_SELECTED_TEXT}}}$0',
-            sectionStar: '\\section*{${1:${TM_SELECTED_TEXT}}}$0',
-            subsection: '\\subsection{${1:${TM_SELECTED_TEXT}}}$0',
-            subsectionStar: '\\subsection*{${1:${TM_SELECTED_TEXT}}}$0',
-            subsubsection: '\\subsubsection{${1:${TM_SELECTED_TEXT}}}$0',
-            paragraph: '\\paragraph{${1:${TM_SELECTED_TEXT}}}$0',
-            label: '\\label{${1:${TM_SELECTED_TEXT}}}$0',
-            ref: '\\ref{${1:${TM_SELECTED_TEXT}}}$0',
-            cref: '\\cref{${1:${TM_SELECTED_TEXT}}}$0',
-            pageref: '\\pageref{${1:${TM_SELECTED_TEXT}}}$0',
-            href: '\\href{${1:url}}{${2:${TM_SELECTED_TEXT}}}$0',
-            url: '\\url{${1:${TM_SELECTED_TEXT}}}$0',
-            input: '\\input{${1:path}}$0',
-            tableofcontents: '\\tableofcontents\n$0',
-            listoffigures: '\\listoffigures\n$0',
-            listoftables: '\\listoftables\n$0',
-            itemize: '\\begin{itemize}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{itemize}\n$0',
-            enumerate: '\\begin{enumerate}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{enumerate}\n$0',
-            quote: '\\begin{quote}\n${1:${TM_SELECTED_TEXT}}\n\\end{quote}\n$0',
-            footnote: '\\footnote{${1:${TM_SELECTED_TEXT}}}$0',
-            printbibliography: '\\printbibliography\n$0',
-            appendix: '\\appendix\n$0',
-            newpage: '\\newpage\n$0',
-            clearpage: '\\clearpage\n$0'
+            part: '\n% Part — \\part{…}\n\\part{${1:${TM_SELECTED_TEXT}}}$0',
+            chapter: '\n% Chapter — \\chapter{…}\n\\chapter{${1:${TM_SELECTED_TEXT}}}$0',
+            section: '\n% Section — \\section{…}\n\\section{${1:${TM_SELECTED_TEXT}}}$0',
+            sectionStar: '\n% Unnumbered Section — \\section*{…}\n\\section*{${1:${TM_SELECTED_TEXT}}}$0',
+            subsection: '\n% Subsection — \\subsection{…}\n\\subsection{${1:${TM_SELECTED_TEXT}}}$0',
+            subsectionStar: '\n% Unnumbered Subsection — \\subsection*{…}\n\\subsection*{${1:${TM_SELECTED_TEXT}}}$0',
+            subsubsection: '\n% Subsubsection — \\subsubsection{…}\n\\subsubsection{${1:${TM_SELECTED_TEXT}}}$0',
+            paragraph: '\n% Paragraph — \\paragraph{…}\n\\paragraph{${1:${TM_SELECTED_TEXT}}}$0',
+            label: '\n% Label — \\label{…}\n% Example: \\label{sec:introduction}\n\\label{${1:${TM_SELECTED_TEXT}}}$0',
+            ref: '\n% Reference — \\ref{…}\n% Example: \\ref{sec:introduction}\n\\ref{${1:${TM_SELECTED_TEXT}}}$0',
+            cref: '\n% Smart Reference — \\cref{…}\n% Example: \\cref{sec:introduction}\n\\cref{${1:${TM_SELECTED_TEXT}}}$0',
+            pageref: '\n% Page Reference — \\pageref{…}\n% Example: \\pageref{sec:introduction}\n\\pageref{${1:${TM_SELECTED_TEXT}}}$0',
+            href: '\n% Hyperlink — \\href{url}{text}\n% Example: \\href{https://example.com}{link text}\n\\href{${1:url}}{${2:${TM_SELECTED_TEXT}}}$0',
+            url: '\n% URL — \\url{…}\n% Example: \\url{https://example.com}\n\\url{${1:${TM_SELECTED_TEXT}}}$0',
+            input: '\n% Include File — \\input{…}\n% Example: \\input{sections/intro}\n\\input{${1:path}}$0',
+            tableofcontents: '\n% Table of Contents — \\tableofcontents\n\\tableofcontents\n$0',
+            listoffigures: '\n% List of Figures — \\listoffigures\n\\listoffigures\n$0',
+            listoftables: '\n% List of Tables — \\listoftables\n\\listoftables\n$0',
+            itemize: '\n% Bulleted List — itemize\n% Example: \\item First item\n\\begin{itemize}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{itemize}\n$0',
+            enumerate: '\n% Numbered List — enumerate\n% Example: \\item First item\n\\begin{enumerate}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{enumerate}\n$0',
+            quote: '\n% Quote Block — quote\n% Example: a short quotation\n\\begin{quote}\n${1:${TM_SELECTED_TEXT}}\n\\end{quote}\n$0',
+            footnote: '\n% Footnote — \\footnote{…}\n% Example: \\footnote{Extra details.}\n\\footnote{${1:${TM_SELECTED_TEXT}}}$0',
+            printbibliography: '\n% Bibliography — \\printbibliography\n\\printbibliography\n$0',
+            appendix: '\n% Appendix — \\appendix\n\\appendix\n$0',
+            newpage: '\n% New Page — \\newpage\n\\newpage\n$0',
+            clearpage: '\n% Flush Figures — \\clearpage\n\\clearpage\n$0'
           };
           const snippet = map[key] || map['section'];
+          await editor.insertSnippet(new vscode.SnippetString(snippet));
+          return;
+        }
+        if (msg?.type === 'insertListElement' && typeof msg.key === 'string') {
+          const key = msg.key as string;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          const map: Record<string, string> = {
+            itemize: '\n% Bulleted List — itemize\n% Example: \\item First item\n\\begin{itemize}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{itemize}\n$0',
+            enumerate: '\n% Numbered List — enumerate\n% Example: \\item First item\n\\begin{enumerate}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{enumerate}\n$0',
+            listItem: '\n% List Item — \\item\n% Example: \\item First item\n\\item ${1:${TM_SELECTED_TEXT}}$0',
+            xlist: '\n% Numbered Sub-Examples — xlist (gb4e)\n% Example: \\ex % \\label{ex:KEY-a}\n\\begin{xlist}\n\\ex % \\label{ex:KEY-a}\n${1:${TM_SELECTED_TEXT}}\n\\end{xlist}\n$0',
+            singleExample: '\n% Single Example — exe (gb4e)\n% Example: \\ex % \\label{ex:KEY}\n\\begin{exe}\n\\ex % \\label{ex:KEY}\n${1:${TM_SELECTED_TEXT}}\n\\end{exe}\n$0',
+            listExample: '\n% New List Example — exe + xlist (gb4e)\n% Example: \\ex % \\label{ex:KEY}, subexample a\n\\begin{exe}\n\\ex % \\label{ex:KEY}\n\\begin{xlist}\n\\ex % \\label{ex:KEY-a}\n${1:${TM_SELECTED_TEXT}}\n\\end{xlist}\n\\end{exe}\n$0'
+          };
+          const snippet = map[key] || map['itemize'];
           await editor.insertSnippet(new vscode.SnippetString(snippet));
           return;
         }
@@ -419,16 +435,16 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           const editor = vscode.window.activeTextEditor;
           if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
           const map: Record<string, string> = {
-            textbf: '\\textbf{${1:${TM_SELECTED_TEXT}}}$0',
-            emph: '\\emph{${1:${TM_SELECTED_TEXT}}}$0',
-            underline: '\\underline{${1:${TM_SELECTED_TEXT}}}$0',
-            sout: '\\sout{${1:${TM_SELECTED_TEXT}}}$0',
-            textsc: '\\textsc{${1:${TM_SELECTED_TEXT}}}$0',
-            texttt: '\\texttt{${1:${TM_SELECTED_TEXT}}}$0',
-            textsuperscript: '\\textsuperscript{${1:${TM_SELECTED_TEXT}}}$0',
-            textsubscript: '\\textsubscript{${1:${TM_SELECTED_TEXT}}}$0',
-            small: '{\\small ${1:${TM_SELECTED_TEXT}}}$0',
-            large: '{\\large ${1:${TM_SELECTED_TEXT}}}$0'
+            textbf: '\n% Bold — \\textbf{…}\n% Example: \\textbf{important}\n\\textbf{${1:${TM_SELECTED_TEXT}}}$0',
+            emph: '\n% Italic — \\emph{…}\n% Example: \\emph{emphasis}\n\\emph{${1:${TM_SELECTED_TEXT}}}$0',
+            underline: '\n% Underline — \\underline{…}\n% Example: \\underline{underline}\n\\underline{${1:${TM_SELECTED_TEXT}}}$0',
+            sout: '\n% Strikethrough — \\sout{…} (requires ulem)\n% Example: \\sout{removed}\n\\sout{${1:${TM_SELECTED_TEXT}}}$0',
+            textsc: '\n% Small Caps — \\textsc{…}\n% Example: \\textsc{Title}\n\\textsc{${1:${TM_SELECTED_TEXT}}}$0',
+            texttt: '\n% Monospace — \\texttt{…}\n% Example: \\texttt{code}\n\\texttt{${1:${TM_SELECTED_TEXT}}}$0',
+            textsuperscript: '\n% Superscript — \\textsuperscript{…}\n% Example: x\\textsuperscript{2}\n\\textsuperscript{${1:${TM_SELECTED_TEXT}}}$0',
+            textsubscript: '\n% Subscript — \\textsubscript{…}\n% Example: H\\textsubscript{2}O\n\\textsubscript{${1:${TM_SELECTED_TEXT}}}$0',
+            small: '\n% Small Text — {\\small …}\n% Example: {\\small smaller text}\n{\\small ${1:${TM_SELECTED_TEXT}}}$0',
+            large: '\n% Large Text — {\\large …}\n% Example: {\\large larger text}\n{\\large ${1:${TM_SELECTED_TEXT}}}$0'
           };
           if (key === 'textcolor') {
             const model = (typeof msg.colorModel === 'string') ? String(msg.colorModel) : 'named';
@@ -437,12 +453,12 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               const hex = raw.replace(/^#/, '').toUpperCase();
               const valid = /^[0-9A-F]{6}$/.test(hex);
               const hexToUse = valid ? hex : 'FF0000';
-              const snip = `\\textcolor[HTML]{${hexToUse}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
+              const snip = `\n% Text Color (HTML) — \\textcolor[HTML]{RRGGBB}{…}\n% Example: \\textcolor[HTML]{FF7F50}{coral text}\n\\textcolor[HTML]{${hexToUse}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
               await editor.insertSnippet(new vscode.SnippetString(snip));
               return;
             } else {
               const name = raw || 'red';
-              const snip = `\\textcolor{${name}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
+              const snip = `\n% Text Color — \\textcolor{color}{…}\n% Example: \\textcolor{${name}}{highlight}\n\\textcolor{${name}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
               await editor.insertSnippet(new vscode.SnippetString(snip));
               return;
             }
@@ -627,81 +643,28 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           </div>
           <div class="help" style="margin:8px 0 4px;">Quick insert common structure commands. If text is selected, it will be wrapped; otherwise, the cursor is placed inside the braces/command.</div>
           <div class="row">
-            <select id="structure_select">
-              <option value="section">Section – \\section{…}</option>
-              <option value="subsection">Subsection – \\subsection{…}</option>
-              <option value="subsubsection">Subsubsection – \\subsubsection{…}</option>
-              <option value="paragraph">Paragraph – \\paragraph{…}</option>
-              <option value="sectionStar">Unnumbered Section – \\section*{…}</option>
-              <option value="subsectionStar">Unnumbered Subsection – \\subsection*{…}</option>
-              <option value="chapter">Chapter – \\chapter{…}</option>
-              <option value="part">Part – \\part{…}</option>
-              <option value="label">Label – \\label{…}</option>
-              <option value="ref">Reference – \\ref{…}</option>
-              <option value="cref" title="Requires 'cleveref'. Use TeX Environment → Check Preamble Packages to install.">Smart Reference – \\cref{…}</option>
-              <option value="pageref">Page Reference – \\pageref{…}</option>
-              <option value="href" title="Requires 'hyperref'. Use TeX Environment to install.">Hyperlink – \\href{url}{text}</option>
-              <option value="url" title="Provided by 'hyperref' or 'url'. Use TeX Environment to install if missing.">URL – \\url{…}</option>
-              <option value="input">Include File – \\input{…}</option>
-              <option value="tableofcontents">Table of Contents – \\tableofcontents</option>
-              <option value="listoffigures">List of Figures – \\listoffigures</option>
-              <option value="listoftables">List of Tables – \\listoftables</option>
-              <option value="itemize">Bulleted List – itemize</option>
-              <option value="enumerate">Numbered List – enumerate</option>
-              <option value="quote">Quote Block – quote</option>
-              <option value="footnote">Footnote – \\footnote{…}</option>
-              <option value="printbibliography" title="Requires 'biblatex' and biber. Use TeX Environment to install.">Bibliography – \\printbibliography</option>
-              <option value="appendix">Appendix – \\appendix</option>
-              <option value="newpage">New Page – \\newpage</option>
-              <option value="clearpage">Flush Figures – \\clearpage</option>
-            </select>
-            <button class="btn" id="btnInsertStructure">Insert</button>
+            <button class="btn" id="btnStructure">Structure...</button>
           </div>
           <div class="help">Tip: If LaTeX reports a missing package (e.g., cleveref, hyperref/url, biblatex), open the TeX Environment section above and run “Check Preamble Packages” to install.</div>
           <div class="help" style="margin:12px 0 4px;">Inline formatting commands</div>
           <div class="row">
-            <select id="format_select">
-              <option value="textbf">Bold – \\textbf{…}</option>
-              <option value="emph">Italic – \\emph{…}</option>
-              <option value="underline">Underline – \\underline{…}</option>
-              <option value="sout" title="Requires 'ulem'. Use TeX Environment to install.">Strikethrough – \\sout{…}</option>
-              <option value="textsc">Small Caps – \\textsc{…}</option>
-              <option value="texttt">Monospace – \\texttt{…}</option>
-              <option value="textsuperscript" title="Provided by LaTeX kernel (2015+). If missing, update TeX Live via TeX Environment.">Superscript – \\textsuperscript{…}</option>
-              <option value="textsubscript" title="Provided by LaTeX kernel (2015+). If missing, update TeX Live via TeX Environment.">Subscript – \\textsubscript{…}</option>
-              <option value="textcolor" title="Requires 'xcolor'. Use TeX Environment to install.">Text Color – \\textcolor{color}{…}</option>
-              <option value="small">Small Text – {\\small …}</option>
-              <option value="large">Large Text – {\\large …}</option>
-            </select>
-            <button class="btn" id="btnApplyFormat">Apply</button>
-          </div>
-          <div class="row" id="format_colorRow" style="gap:8px; display:none; align-items:center;">
-            <label style="min-width:90px;">Color:</label>
-            <select id="format_namedColor" title="Choose a named xcolor color or 'Custom' to pick any color.">
-              <option value="__custom">Custom (pick below)</option>
-              <option value="black">black</option>
-              <option value="gray">gray</option>
-              <option value="darkgray">darkgray</option>
-              <option value="lightgray">lightgray</option>
-              <option value="white">white</option>
-              <option value="red" selected>red</option>
-              <option value="green">green</option>
-              <option value="blue">blue</option>
-              <option value="cyan">cyan</option>
-              <option value="magenta">magenta</option>
-              <option value="yellow">yellow</option>
-              <option value="brown">brown</option>
-              <option value="lime">lime</option>
-              <option value="olive">olive</option>
-              <option value="orange">orange</option>
-              <option value="purple">purple</option>
-              <option value="teal">teal</option>
-              <option value="violet">violet</option>
-            </select>
-            <input type="color" id="format_colorPicker" value="#ff0000" title="Custom color (HTML hex). Requires xcolor." />
-            <span class="help">Tip: Missing xcolor? Use TeX Environment → Check Preamble Packages.</span>
+            <button class="btn" id="btnFormatting">Formatting...</button>
           </div>
           <div class="help">Tip: For missing formatting packages (e.g., ulem, xcolor), open the TeX Environment section and run “Check Preamble Packages”.</div>
+
+          <div class="help" style="margin:16px 0 4px;">Lists and numbered examples</div>
+          <div class="row" style="gap:8px; align-items:center;">
+            <select id="lists_select">
+              <option value="itemize">Bulleted List – itemize</option>
+              <option value="enumerate">Numbered List – enumerate</option>
+              <option value="xlist">Numbered Sub-Examples – xlist (gb4e)</option>
+              <option value="listExample">New List Example – exe + xlist (gb4e)</option>
+              <option value="singleExample">Single Example – exe (gb4e)</option>
+              <option value="listItem">List Item – \item</option>
+            </select>
+            <button class="btn" id="btnInsertListElem">Insert</button>
+          </div>
+          <div class="help">Tip: Examples use gb4e/langsci-gb4e. If missing, use TeX Environment → Install Recommended Packages.</div>
         </details>
 
         <details>
@@ -875,6 +838,14 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               vscode.postMessage({ type: 'insertDocStructure', key: sel });
             });
           }
+          const btnInsertListElem = document.getElementById('btnInsertListElem');
+          if (btnInsertListElem) {
+            btnInsertListElem.addEventListener('click', () => {
+              const sel = (document.getElementById('lists_select').value || 'itemize');
+              saveState({ lists_select: sel });
+              vscode.postMessage({ type: 'insertListElement', key: sel });
+            });
+          }
           const btnApplyFormat = document.getElementById('btnApplyFormat');
           if (btnApplyFormat) {
             btnApplyFormat.addEventListener('click', () => {
@@ -914,6 +885,12 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             const st = getState();
             const structSel = document.getElementById('structure_select');
             if (structSel && st && typeof st.structure_select === 'string') structSel.value = st.structure_select;
+          } catch {}
+          // restore lists dropdown
+          try {
+            const st = getState();
+            const listsSel = document.getElementById('lists_select');
+            if (listsSel && st && typeof st.lists_select === 'string') listsSel.value = st.lists_select;
           } catch {}
           // restore named/custom color options
           try {
