@@ -378,6 +378,79 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           vscode.window.showInformationMessage('LingTeX: File selected and setting updated');
           return;
         }
+        if (msg?.type === 'insertDocStructure' && typeof msg.key === 'string') {
+          const key = msg.key as string;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          const map: Record<string, string> = {
+            part: '\\part{${1:${TM_SELECTED_TEXT}}}$0',
+            chapter: '\\chapter{${1:${TM_SELECTED_TEXT}}}$0',
+            section: '\\section{${1:${TM_SELECTED_TEXT}}}$0',
+            sectionStar: '\\section*{${1:${TM_SELECTED_TEXT}}}$0',
+            subsection: '\\subsection{${1:${TM_SELECTED_TEXT}}}$0',
+            subsectionStar: '\\subsection*{${1:${TM_SELECTED_TEXT}}}$0',
+            subsubsection: '\\subsubsection{${1:${TM_SELECTED_TEXT}}}$0',
+            paragraph: '\\paragraph{${1:${TM_SELECTED_TEXT}}}$0',
+            label: '\\label{${1:${TM_SELECTED_TEXT}}}$0',
+            ref: '\\ref{${1:${TM_SELECTED_TEXT}}}$0',
+            cref: '\\cref{${1:${TM_SELECTED_TEXT}}}$0',
+            pageref: '\\pageref{${1:${TM_SELECTED_TEXT}}}$0',
+            href: '\\href{${1:url}}{${2:${TM_SELECTED_TEXT}}}$0',
+            url: '\\url{${1:${TM_SELECTED_TEXT}}}$0',
+            input: '\\input{${1:path}}$0',
+            tableofcontents: '\\tableofcontents\n$0',
+            listoffigures: '\\listoffigures\n$0',
+            listoftables: '\\listoftables\n$0',
+            itemize: '\\begin{itemize}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{itemize}\n$0',
+            enumerate: '\\begin{enumerate}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{enumerate}\n$0',
+            quote: '\\begin{quote}\n${1:${TM_SELECTED_TEXT}}\n\\end{quote}\n$0',
+            footnote: '\\footnote{${1:${TM_SELECTED_TEXT}}}$0',
+            printbibliography: '\\printbibliography\n$0',
+            appendix: '\\appendix\n$0',
+            newpage: '\\newpage\n$0',
+            clearpage: '\\clearpage\n$0'
+          };
+          const snippet = map[key] || map['section'];
+          await editor.insertSnippet(new vscode.SnippetString(snippet));
+          return;
+        }
+        if (msg?.type === 'insertInlineFormat' && typeof msg.key === 'string') {
+          const key = msg.key as string;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          const map: Record<string, string> = {
+            textbf: '\\textbf{${1:${TM_SELECTED_TEXT}}}$0',
+            emph: '\\emph{${1:${TM_SELECTED_TEXT}}}$0',
+            underline: '\\underline{${1:${TM_SELECTED_TEXT}}}$0',
+            sout: '\\sout{${1:${TM_SELECTED_TEXT}}}$0',
+            textsc: '\\textsc{${1:${TM_SELECTED_TEXT}}}$0',
+            texttt: '\\texttt{${1:${TM_SELECTED_TEXT}}}$0',
+            textsuperscript: '\\textsuperscript{${1:${TM_SELECTED_TEXT}}}$0',
+            textsubscript: '\\textsubscript{${1:${TM_SELECTED_TEXT}}}$0',
+            small: '{\\small ${1:${TM_SELECTED_TEXT}}}$0',
+            large: '{\\large ${1:${TM_SELECTED_TEXT}}}$0'
+          };
+          if (key === 'textcolor') {
+            const model = (typeof msg.colorModel === 'string') ? String(msg.colorModel) : 'named';
+            const raw = String(msg.colorValue || '').trim();
+            if (model.toUpperCase() === 'HTML') {
+              const hex = raw.replace(/^#/, '').toUpperCase();
+              const valid = /^[0-9A-F]{6}$/.test(hex);
+              const hexToUse = valid ? hex : 'FF0000';
+              const snip = `\\textcolor[HTML]{${hexToUse}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
+              await editor.insertSnippet(new vscode.SnippetString(snip));
+              return;
+            } else {
+              const name = raw || 'red';
+              const snip = `\\textcolor{${name}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
+              await editor.insertSnippet(new vscode.SnippetString(snip));
+              return;
+            }
+          }
+          const snippet = map[key] || map['textbf'];
+          await editor.insertSnippet(new vscode.SnippetString(snippet));
+          return;
+        }
         if (msg?.type === 'addSubDocument') {
           const wf = vscode.workspace.workspaceFolders?.[this.currentFolderIndex];
           const rootUri = wf?.uri;
@@ -548,10 +621,87 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
         <details>
           <summary><strong>Document Structure</strong></summary>
-          <div class="help" style="margin:4px 0 8px;">Add a new sub-document and insert an \input statement at the cursor. The path used will be relative to the main TeX file if configured, otherwise to the current file.</div>
+          <div class="help" style="margin:4px 0 8px;">Add a new sub-document and insert an \\input statement at the cursor. The path used will be relative to the main TeX file if configured, otherwise to the current file.</div>
           <div class="row">
             <button class="btn" id="btnAddSubDoc">Add Sub-Document</button>
           </div>
+          <div class="help" style="margin:8px 0 4px;">Quick insert common structure commands. If text is selected, it will be wrapped; otherwise, the cursor is placed inside the braces/command.</div>
+          <div class="row">
+            <select id="structure_select">
+              <option value="section">Section – \\section{…}</option>
+              <option value="subsection">Subsection – \\subsection{…}</option>
+              <option value="subsubsection">Subsubsection – \\subsubsection{…}</option>
+              <option value="paragraph">Paragraph – \\paragraph{…}</option>
+              <option value="sectionStar">Unnumbered Section – \\section*{…}</option>
+              <option value="subsectionStar">Unnumbered Subsection – \\subsection*{…}</option>
+              <option value="chapter">Chapter – \\chapter{…}</option>
+              <option value="part">Part – \\part{…}</option>
+              <option value="label">Label – \\label{…}</option>
+              <option value="ref">Reference – \\ref{…}</option>
+              <option value="cref" title="Requires 'cleveref'. Use TeX Environment → Check Preamble Packages to install.">Smart Reference – \\cref{…}</option>
+              <option value="pageref">Page Reference – \\pageref{…}</option>
+              <option value="href" title="Requires 'hyperref'. Use TeX Environment to install.">Hyperlink – \\href{url}{text}</option>
+              <option value="url" title="Provided by 'hyperref' or 'url'. Use TeX Environment to install if missing.">URL – \\url{…}</option>
+              <option value="input">Include File – \\input{…}</option>
+              <option value="tableofcontents">Table of Contents – \\tableofcontents</option>
+              <option value="listoffigures">List of Figures – \\listoffigures</option>
+              <option value="listoftables">List of Tables – \\listoftables</option>
+              <option value="itemize">Bulleted List – itemize</option>
+              <option value="enumerate">Numbered List – enumerate</option>
+              <option value="quote">Quote Block – quote</option>
+              <option value="footnote">Footnote – \\footnote{…}</option>
+              <option value="printbibliography" title="Requires 'biblatex' and biber. Use TeX Environment to install.">Bibliography – \\printbibliography</option>
+              <option value="appendix">Appendix – \\appendix</option>
+              <option value="newpage">New Page – \\newpage</option>
+              <option value="clearpage">Flush Figures – \\clearpage</option>
+            </select>
+            <button class="btn" id="btnInsertStructure">Insert</button>
+          </div>
+          <div class="help">Tip: If LaTeX reports a missing package (e.g., cleveref, hyperref/url, biblatex), open the TeX Environment section above and run “Check Preamble Packages” to install.</div>
+          <div class="help" style="margin:12px 0 4px;">Inline formatting commands</div>
+          <div class="row">
+            <select id="format_select">
+              <option value="textbf">Bold – \\textbf{…}</option>
+              <option value="emph">Italic – \\emph{…}</option>
+              <option value="underline">Underline – \\underline{…}</option>
+              <option value="sout" title="Requires 'ulem'. Use TeX Environment to install.">Strikethrough – \\sout{…}</option>
+              <option value="textsc">Small Caps – \\textsc{…}</option>
+              <option value="texttt">Monospace – \\texttt{…}</option>
+              <option value="textsuperscript" title="Provided by LaTeX kernel (2015+). If missing, update TeX Live via TeX Environment.">Superscript – \\textsuperscript{…}</option>
+              <option value="textsubscript" title="Provided by LaTeX kernel (2015+). If missing, update TeX Live via TeX Environment.">Subscript – \\textsubscript{…}</option>
+              <option value="textcolor" title="Requires 'xcolor'. Use TeX Environment to install.">Text Color – \\textcolor{color}{…}</option>
+              <option value="small">Small Text – {\\small …}</option>
+              <option value="large">Large Text – {\\large …}</option>
+            </select>
+            <button class="btn" id="btnApplyFormat">Apply</button>
+          </div>
+          <div class="row" id="format_colorRow" style="gap:8px; display:none; align-items:center;">
+            <label style="min-width:90px;">Color:</label>
+            <select id="format_namedColor" title="Choose a named xcolor color or 'Custom' to pick any color.">
+              <option value="__custom">Custom (pick below)</option>
+              <option value="black">black</option>
+              <option value="gray">gray</option>
+              <option value="darkgray">darkgray</option>
+              <option value="lightgray">lightgray</option>
+              <option value="white">white</option>
+              <option value="red" selected>red</option>
+              <option value="green">green</option>
+              <option value="blue">blue</option>
+              <option value="cyan">cyan</option>
+              <option value="magenta">magenta</option>
+              <option value="yellow">yellow</option>
+              <option value="brown">brown</option>
+              <option value="lime">lime</option>
+              <option value="olive">olive</option>
+              <option value="orange">orange</option>
+              <option value="purple">purple</option>
+              <option value="teal">teal</option>
+              <option value="violet">violet</option>
+            </select>
+            <input type="color" id="format_colorPicker" value="#ff0000" title="Custom color (HTML hex). Requires xcolor." />
+            <span class="help">Tip: Missing xcolor? Use TeX Environment → Check Preamble Packages.</span>
+          </div>
+          <div class="help">Tip: For missing formatting packages (e.g., ulem, xcolor), open the TeX Environment section and run “Check Preamble Packages”.</div>
         </details>
 
         <details>
@@ -682,6 +832,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
         <script>
           const vscode = acquireVsCodeApi();
+          const getState = () => (vscode.getState() || {});
+          const saveState = (partial) => {
+            try { const cur = getState(); vscode.setState({ ...cur, ...partial }); } catch {}
+          };
           const folderSel = document.getElementById('ltx_folderSel');
           if (folderSel) {
             folderSel.addEventListener('change', () => {
@@ -713,6 +867,69 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               vscode.postMessage({ type: 'addSubDocument' });
             });
           }
+          const btnInsertStructure = document.getElementById('btnInsertStructure');
+          if (btnInsertStructure) {
+            btnInsertStructure.addEventListener('click', () => {
+              const sel = (document.getElementById('structure_select').value || 'section');
+              saveState({ structure_select: sel });
+              vscode.postMessage({ type: 'insertDocStructure', key: sel });
+            });
+          }
+          const btnApplyFormat = document.getElementById('btnApplyFormat');
+          if (btnApplyFormat) {
+            btnApplyFormat.addEventListener('click', () => {
+              const sel = (document.getElementById('format_select').value || 'textbf');
+              saveState({ format_select: sel });
+              if (sel === 'textcolor') {
+                const named = (document.getElementById('format_namedColor') && document.getElementById('format_namedColor').value) || '__custom';
+                const hex = (document.getElementById('format_colorPicker') && document.getElementById('format_colorPicker').value) || '#ff0000';
+                saveState({ format_namedColor: named, format_colorPicker: hex });
+                if (named === '__custom') {
+                  vscode.postMessage({ type: 'insertInlineFormat', key: sel, colorModel: 'HTML', colorValue: String(hex || '').replace(/^#/, '').toUpperCase() });
+                } else {
+                  vscode.postMessage({ type: 'insertInlineFormat', key: sel, colorModel: 'named', colorValue: String(named || 'red') });
+                }
+              } else {
+                vscode.postMessage({ type: 'insertInlineFormat', key: sel });
+              }
+            });
+          }
+          const fmtSel = document.getElementById('format_select');
+          const colorRow = document.getElementById('format_colorRow');
+          const updateColorRow = () => {
+            const v = (fmtSel && fmtSel.value) || 'textbf';
+            if (colorRow) colorRow.style.display = (v === 'textcolor') ? 'flex' : 'none';
+          };
+          if (fmtSel) {
+            fmtSel.addEventListener('change', updateColorRow);
+            // restore UI state
+            const st = getState();
+            try {
+              if (st && typeof st.format_select === 'string') fmtSel.value = st.format_select;
+            } catch {}
+            updateColorRow();
+          }
+          // restore structure dropdown
+          try {
+            const st = getState();
+            const structSel = document.getElementById('structure_select');
+            if (structSel && st && typeof st.structure_select === 'string') structSel.value = st.structure_select;
+          } catch {}
+          // restore named/custom color options
+          try {
+            const st = getState();
+            const namedEl = document.getElementById('format_namedColor');
+            const hexEl = document.getElementById('format_colorPicker');
+            if (namedEl && st && typeof st.format_namedColor === 'string') namedEl.value = st.format_namedColor;
+            if (hexEl && st && typeof st.format_colorPicker === 'string') hexEl.value = st.format_colorPicker;
+          } catch {}
+          // save on changes
+          const structSel = document.getElementById('structure_select');
+          if (structSel) structSel.addEventListener('change', () => saveState({ structure_select: structSel.value }));
+          const namedEl = document.getElementById('format_namedColor');
+          if (namedEl) namedEl.addEventListener('change', () => saveState({ format_namedColor: namedEl.value }));
+          const hexEl = document.getElementById('format_colorPicker');
+          if (hexEl) hexEl.addEventListener('input', () => saveState({ format_colorPicker: hexEl.value }));
                     document.getElementById('btnBrowseTablesOutputDir').addEventListener('click', () => {
                       vscode.postMessage({ type: 'chooseFolder', key: 'lingtex.tables.outputDir' });
                     });
