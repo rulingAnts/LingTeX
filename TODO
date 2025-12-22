@@ -24,6 +24,6 @@
 - [ ] Add a feature: "Insert Abbreviation" panel (which also lets the user add, remove, and edit abbreviations in the abbreviations list, also that lets the user insert abbreviations into the document, also that checks the document for existing likely abbreviations)
 - [ ] Add a feature: "Insert Citation" panel (which also lets the user add, remove, and edit citations in the bibliography file, also that lets the user insert citations into the document, also that checks the document for existing likely citations)
 - [ ] Add a feature: "Edit Table" -> a way to import and export Excel sheets.
-	- See Markdown roadmap file in our repository
+	- See roadmap: [ROADMAP-Excel-Tables.md](ROADMAP-Excel-Tables.md)
 - [ ] Add "Export" panel (PDF, Word, HTML)
 - [ ] Have our extension recommend and give instructions for how to use XeLaTeX instead of pdflatex. But also have the abiility to go through our document and convert all unsupported unicode (especially IPA) characters to pdflatex-compatible commands (e.g., using the tipa package).
