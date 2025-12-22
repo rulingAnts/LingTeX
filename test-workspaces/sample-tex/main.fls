@@ -43,6 +43,16 @@ INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.st
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+INPUT ./chapter1/ch1.tex
+INPUT ./chapter1/ch1.tex
+INPUT ./chapter1/ch1.tex
+INPUT ./chapter1/ch1.tex
+INPUT ./chapter1/ch1.tex
+INPUT ./chapter1/section1/s1.tex
+INPUT ./chapter1/section1/s1.tex
+INPUT ./chapter1/section1/s1.tex
+INPUT ./chapter1/section1/s1.tex
+INPUT ./chapter1/section1/s1.tex
 OUTPUT main.pdf
 INPUT /usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT main.aux

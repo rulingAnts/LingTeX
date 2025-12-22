@@ -148,6 +148,12 @@ Troubleshooting: If VS Code reports an invalid VSIX, re-download from Releases. 
 - The panel provides buttons for all features and simple forms for common options (e.g., TSV → Interlinear output mode, Excel export destination).
 - Use the Quick Actions to open TSV templates or run conversions without the Command Palette.
 
+### Document Structure — Add Sub-Document
+- Creates a new `.tex` file at a chosen location and inserts an `\input{...}` statement at the current cursor.
+- Path resolution: When `lingtex.tex.mainFile` is set, the inserted path is computed relative to the main TeX file’s directory (the usual LaTeX working directory during compile). If not set, it is relative to the current editor’s file.
+- Best practice: The inserted `\input{...}` omits the `.tex` extension and uses normalized forward slashes, prefixed with `./` when needed.
+- Tip: If you prefer relative-to-subfile behavior, consider the LaTeX `import` or `subfiles` packages; otherwise LaTeX resolves relative paths from the main document’s directory.
+
 ### TeX Environment helpers
 - LingTeX detects whether a TeX distribution is available. If none is found, the panel shows a bright red warning banner with quick actions to:
 	- Check Environment (detect `latexmk`, `pdflatex`/`xelatex`/`lualatex`, `kpsewhich`, `tlmgr`). If no TeX is detected, a modal prompt offers to install a distribution or open the Install Guide.
