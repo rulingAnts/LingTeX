@@ -104,6 +104,195 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       try {
+        if (msg?.type === 'openStructurePick') {
+          const picks = [
+            { label: 'Section — \\section{…}', value: 'section' },
+            { label: 'Subsection — \\subsection{…}', value: 'subsection' },
+            { label: 'Subsubsection — \\subsubsection{…}', value: 'subsubsection' },
+            { label: 'Paragraph — \\paragraph{…}', value: 'paragraph' },
+            { label: 'Unnumbered Section — \\section*{…}', value: 'sectionStar' },
+            { label: 'Unnumbered Subsection — \\subsection*{…}', value: 'subsectionStar' },
+            { label: 'Chapter — \\chapter{…}', value: 'chapter' },
+            { label: 'Part — \\part{…}', value: 'part' },
+            { label: 'Table of Contents — \\tableofcontents', value: 'tableofcontents' },
+            { label: 'List of Figures — \\listoffigures', value: 'listoffigures' },
+            { label: 'List of Tables — \\listoftables', value: 'listoftables' },
+            { label: 'Quote Block — quote', value: 'quote' },
+            { label: 'Footnote — \\footnote{…}', value: 'footnote' },
+            { label: 'Bibliography — \\printbibliography', value: 'printbibliography' },
+            { label: 'Appendix — \\appendix', value: 'appendix' },
+            { label: 'New Page — \\newpage', value: 'newpage' },
+            { label: 'Flush Figures — \\clearpage', value: 'clearpage' },
+          ];
+          const sel = await vscode.window.showQuickPick(picks, { placeHolder: 'Insert document structure' });
+          if (!sel?.value) return;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          const map: Record<string, string> = {
+            part: '\n% Part — \\part{…}\n\\part{${1:${TM_SELECTED_TEXT}}}$0',
+            chapter: '\n% Chapter — \\chapter{…}\n\\chapter{${1:${TM_SELECTED_TEXT}}}$0',
+            section: '\n% Section — \\section{…}\n\\section{${1:${TM_SELECTED_TEXT}}}$0',
+            sectionStar: '\n% Unnumbered Section — \\section*{…}\n\\section*{${1:${TM_SELECTED_TEXT}}}$0',
+            subsection: '\n% Subsection — \\subsection{…}\n\\subsection{${1:${TM_SELECTED_TEXT}}}$0',
+            subsectionStar: '\n% Unnumbered Subsection — \\subsection*{…}\n\\subsection*{${1:${TM_SELECTED_TEXT}}}$0',
+            subsubsection: '\n% Subsubsection — \\subsubsection{…}\n\\subsubsection{${1:${TM_SELECTED_TEXT}}}$0',
+            paragraph: '\n% Paragraph — \\paragraph{…}\n\\paragraph{${1:${TM_SELECTED_TEXT}}}$0',
+            tableofcontents: '\n% Table of Contents — \\tableofcontents\n\\tableofcontents\n$0',
+            listoffigures: '\n% List of Figures — \\listoffigures\n\\listoffigures\n$0',
+            listoftables: '\n% List of Tables — \\listoftables\n\\listoftables\n$0',
+            quote: '\n% Quote Block — quote\n% Example: a short quotation\n\\begin{quote}\n${1:${TM_SELECTED_TEXT}}\n\\end{quote}\n$0',
+            footnote: '\n% Footnote — \\footnote{…}\n% Example: \\footnote{Extra details.}\n\\footnote{${1:${TM_SELECTED_TEXT}}}$0',
+            printbibliography: '\n% Bibliography — \\printbibliography\n\\printbibliography\n$0',
+            appendix: '\n% Appendix — \\appendix\n\\appendix\n$0',
+            newpage: '\n% New Page — \\newpage\n\\newpage\n$0',
+            clearpage: '\n% Flush Figures — \\clearpage\n\\clearpage\n$0'
+          };
+          const snippet = map[sel.value] || map['section'];
+          await editor.insertSnippet(new vscode.SnippetString(snippet));
+          return;
+        }
+        if (msg?.type === 'openFormattingPick') {
+          const picks = [
+            { label: 'Bold — \\textbf{…}', value: 'textbf' },
+            { label: 'Italic — \\emph{…}', value: 'emph' },
+            { label: 'Underline — \\underline{…}', value: 'underline' },
+            { label: 'Strikethrough — \\sout{…}', value: 'sout' },
+            { label: 'Small Caps — \\textsc{…}', value: 'textsc' },
+            { label: 'Monospace — \\texttt{…}', value: 'texttt' },
+            { label: 'Superscript — \\textsuperscript{…}', value: 'textsuperscript' },
+            { label: 'Subscript — \\textsubscript{…}', value: 'textsubscript' },
+            { label: 'Text Color — \\textcolor{color}{…}', value: 'textcolor' },
+            { label: 'URL — \\url{…}', value: 'url' },
+            { label: 'Small Text — {\\small …}', value: 'small' },
+            { label: 'Large Text — {\\large …}', value: 'large' },
+          ];
+          const sel = await vscode.window.showQuickPick(picks, { placeHolder: 'Apply inline formatting' });
+          if (!sel?.value) return;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          if (sel.value === 'textcolor') {
+            const modelPick = await vscode.window.showQuickPick([
+              { label: 'Named color (xcolor)', value: 'named' },
+              { label: 'HTML hex (e.g., FF0000)', value: 'HTML' }
+            ], { placeHolder: 'Choose color model' });
+            if (!modelPick?.value) return;
+            if (modelPick.value === 'named') {
+              const named = await vscode.window.showQuickPick([
+                { label: 'red', value: 'red' }, { label: 'blue', value: 'blue' }, { label: 'green', value: 'green' },
+                { label: 'black', value: 'black' }, { label: 'gray', value: 'gray' }, { label: 'darkgray', value: 'darkgray' },
+                { label: 'lightgray', value: 'lightgray' }, { label: 'cyan', value: 'cyan' }, { label: 'magenta', value: 'magenta' },
+                { label: 'yellow', value: 'yellow' }, { label: 'brown', value: 'brown' }, { label: 'lime', value: 'lime' },
+                { label: 'olive', value: 'olive' }, { label: 'orange', value: 'orange' }, { label: 'purple', value: 'purple' },
+                { label: 'teal', value: 'teal' }, { label: 'violet', value: 'violet' }
+              ], { placeHolder: 'Pick a named xcolor color' });
+              if (!named?.value) return;
+              const snip = `\n% Text Color — \\textcolor{color}{…}\n% Example: \\textcolor{${named.value}}{highlight}\n\\textcolor{${named.value}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
+              await editor.insertSnippet(new vscode.SnippetString(snip));
+              return;
+            } else {
+              const hex = await vscode.window.showInputBox({ prompt: 'Enter 6-digit HTML hex (e.g., FF7F50)', value: 'FF0000' });
+              const h = (hex || '').replace(/^#/, '').toUpperCase();
+              const valid = /^[0-9A-F]{6}$/.test(h);
+              const toUse = valid ? h : 'FF0000';
+              const snip = `\n% Text Color (HTML) — \\textcolor[HTML]{RRGGBB}{…}\n% Example: \\textcolor[HTML]{FF7F50}{coral text}\n\\textcolor[HTML]{${toUse}}{${'${1:${TM_SELECTED_TEXT}}'} }$0`;
+              await editor.insertSnippet(new vscode.SnippetString(snip));
+              return;
+            }
+          } else {
+            const map: Record<string, string> = {
+              textbf: '\n% Bold — \\textbf{…}\n% Example: \\textbf{important}\n\\textbf{${1:${TM_SELECTED_TEXT}}}$0',
+              emph: '\n% Italic — \\emph{…}\n% Example: \\emph{emphasis}\n\\emph{${1:${TM_SELECTED_TEXT}}}$0',
+              underline: '\n% Underline — \\underline{…}\n% Example: \\underline{underline}\n\\underline{${1:${TM_SELECTED_TEXT}}}$0',
+              sout: '\n% Strikethrough — \\sout{…} (requires ulem)\n% Example: \\sout{removed}\n\\sout{${1:${TM_SELECTED_TEXT}}}$0',
+              textsc: '\n% Small Caps — \\textsc{…}\n% Example: \\textsc{Title}\n\\textsc{${1:${TM_SELECTED_TEXT}}}$0',
+              texttt: '\n% Monospace — \\texttt{…}\n% Example: \\texttt{code}\n\\texttt{${1:${TM_SELECTED_TEXT}}}$0',
+              textsuperscript: '\n% Superscript — \\textsuperscript{…}\n% Example: x\\textsuperscript{2}\n\\textsuperscript{${1:${TM_SELECTED_TEXT}}}$0',
+              textsubscript: '\n% Subscript — \\textsubscript{…}\n% Example: H\\textsubscript{2}O\n\\textsubscript{${1:${TM_SELECTED_TEXT}}}$0',
+              url: '\n% URL — \\url{…}\n% Example: \\url{https://example.com}\n\\url{${1:${TM_SELECTED_TEXT}}}$0',
+              small: '\n% Small Text — {\\small …}\n% Example: {\\small smaller text}\n{\\small ${1:${TM_SELECTED_TEXT}}}$0',
+              large: '\n% Large Text — {\\large …}\n% Example: {\\large larger text}\n{\\large ${1:${TM_SELECTED_TEXT}}}$0'
+            };
+            const snippet = map[sel.value] || map['textbf'];
+            await editor.insertSnippet(new vscode.SnippetString(snippet));
+            return;
+          }
+        }
+        if (msg?.type === 'openListsPick') {
+          const picks = [
+            { label: 'Bulleted List — itemize', value: 'itemize' },
+            { label: 'Numbered List — enumerate', value: 'enumerate' },
+            { label: 'Numbered Sub-Examples — xlist (gb4e)', value: 'xlist' },
+            { label: 'New List Example — exe + xlist (gb4e)', value: 'listExample' },
+            { label: 'Single Example — exe (gb4e)', value: 'singleExample' },
+            { label: 'List Item — \\item', value: 'listItem' }
+          ];
+          const sel = await vscode.window.showQuickPick(picks, { placeHolder: 'Insert list or example' });
+          if (!sel?.value) return;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          const map: Record<string, string> = {
+            itemize: '\n% Bulleted List — itemize\n% Example: \\item First item\n\\begin{itemize}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{itemize}\n$0',
+            enumerate: '\n% Numbered List — enumerate\n% Example: \\item First item\n\\begin{enumerate}\n\\item ${1:${TM_SELECTED_TEXT}}\n\\end{enumerate}\n$0',
+            listItem: '\n% List Item — \\item\n% Example: \\item First item\n\\item ${1:${TM_SELECTED_TEXT}}$0',
+            xlist: '\n% Numbered Sub-Examples — xlist (gb4e)\n% Example: \\ex % \\label{ex:KEY-a}\n\\begin{xlist}\n\\ex % \\label{ex:KEY-a}\n${1:${TM_SELECTED_TEXT}}\n\\end{xlist}\n$0',
+            singleExample: '\n% Single Example — exe (gb4e)\n% Example: \\ex % \\label{ex:KEY}\n\\begin{exe}\n\\ex % \\label{ex:KEY}\n${1:${TM_SELECTED_TEXT}}\n\\end{exe}\n$0',
+            listExample: '\n% New List Example — exe + xlist (gb4e)\n% Example: \\ex % \\label{ex:KEY}, subexample a\n\\begin{exe}\n\\ex % \\label{ex:KEY}\n\\begin{xlist}\n\\ex % \\label{ex:KEY-a}\n${1:${TM_SELECTED_TEXT}}\n\\end{xlist}\n\\end{exe}\n$0'
+          };
+          const snippet = map[sel.value] || map['itemize'];
+          await editor.insertSnippet(new vscode.SnippetString(snippet));
+          return;
+        }
+        if (msg?.type === 'openReferencesPick') {
+          const picks = [
+            { label: 'Label — \\label{…}', value: 'label' },
+            { label: 'Reference — \\ref{…}', value: 'ref' },
+            { label: 'Page Reference — \\pageref{…}', value: 'pageref' },
+            { label: 'Smart Reference — \\cref{…} (cleveref)', value: 'cref' },
+            { label: 'Hyperlink — \\href{url}{text} (hyperref)', value: 'href' },
+            { label: 'Autoref — \\autoref{…} (hyperref)', value: 'autoref' },
+            { label: 'Name Reference — \\nameref{…} (nameref)', value: 'nameref' },
+            { label: 'Citation — \\cite{key}', value: 'cite' },
+            { label: 'Parenthetical Citation — \\parencite{key} (biblatex)', value: 'parencite' },
+            { label: 'Text Citation — \\textcite{key} (biblatex)', value: 'textcite' },
+            { label: 'Auto Citation — \\autocite{key} (biblatex)', value: 'autocite' },
+            { label: 'Footnote Citation — \\footcite{key} (biblatex)', value: 'footcite' },
+            { label: 'Super Citation — \\supercite{key} (biblatex)', value: 'supercite' },
+            { label: 'Author — \\citeauthor{key}', value: 'citeauthor' },
+            { label: 'Title — \\citetitle{key}', value: 'citetitle' },
+            { label: 'Year — \\citeyear{key}', value: 'citeyear' },
+            { label: 'Year (paren) — \\citeyearpar{key}', value: 'citeyearpar' },
+            { label: 'Textual Citation — \\citet{key} (natbib)', value: 'citet' },
+            { label: 'Parenthetical Citation — \\citep{key} (natbib)', value: 'citep' },
+          ];
+          const sel = await vscode.window.showQuickPick(picks, { placeHolder: 'Insert label, reference, hyperlink, or citation' });
+          if (!sel?.value) return;
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) { vscode.window.showErrorMessage('LingTeX: Open a LaTeX document to insert.'); return; }
+          const map: Record<string, string> = {
+            label: '\n% Label — \\label{…}\n% Example: \\label{sec:introduction}\n\\label{${1:${TM_SELECTED_TEXT}}}$0',
+            ref: '\n% Reference — \\ref{…}\n% Example: \\ref{sec:introduction}\n\\ref{${1:${TM_SELECTED_TEXT}}}$0',
+            pageref: '\n% Page Reference — \\pageref{…}\n% Example: \\pageref{sec:introduction}\n\\pageref{${1:${TM_SELECTED_TEXT}}}$0',
+            cref: '\n% Smart Reference — \\cref{…} (requires cleveref)\n% Example: \\cref{sec:introduction}\n\\cref{${1:${TM_SELECTED_TEXT}}}$0',
+            href: '\n% Hyperlink — \\href{url}{text} (requires hyperref)\n% Example: \\href{https://example.com}{link text}\n\\href{${1:url}}{${2:${TM_SELECTED_TEXT}}}$0',
+            autoref: '\n% Autoref — \\autoref{…} (requires hyperref)\n% Example: \\autoref{sec:introduction}\n\\autoref{${1:${TM_SELECTED_TEXT}}}$0',
+            nameref: '\n% Name Reference — \\nameref{…} (requires nameref/hyperref)\n% Example: \\nameref{sec:introduction}\n\\nameref{${1:${TM_SELECTED_TEXT}}}$0',
+            cite: '\n% Citation — \\cite{key}\n% Example: \\cite{doe2024}\n\\cite{${1:key}}$0',
+            parencite: '\n% Parenthetical Citation — \\parencite{key} (requires biblatex)\n% Example: \\parencite{doe2024}\n\\parencite{${1:key}}$0',
+            textcite: '\n% Text Citation — \\textcite{key} (requires biblatex)\n% Example: \\textcite{doe2024}\n\\textcite{${1:key}}$0',
+            autocite: '\n% Auto Citation — \\autocite{key} (requires biblatex)\n% Example: \\autocite{doe2024}\n\\autocite{${1:key}}$0',
+            footcite: '\n% Footnote Citation — \\footcite{key} (requires biblatex)\n% Example: \\footcite{doe2024}\n\\footcite{${1:key}}$0',
+            supercite: '\n% Super Citation — \\supercite{key} (requires biblatex)\n% Example: \\supercite{doe2024}\n\\supercite{${1:key}}$0',
+            citeauthor: '\n% Author — \\citeauthor{key}\n% Example: \\citeauthor{doe2024}\n\\citeauthor{${1:key}}$0',
+            citetitle: '\n% Title — \\citetitle{key}\n% Example: \\citetitle{doe2024}\n\\citetitle{${1:key}}$0',
+            citeyear: '\n% Year — \\citeyear{key}\n% Example: \\citeyear{doe2024}\n\\citeyear{${1:key}}$0',
+            citeyearpar: '\n% Year (paren) — \\citeyearpar{key}\n% Example: \\citeyearpar{doe2024}\n\\citeyearpar{${1:key}}$0',
+            citet: '\n% Textual Citation — \\citet{key} (requires natbib)\n% Example: \\citet{doe2024}\n\\citet{${1:key}}$0',
+            citep: '\n% Parenthetical Citation — \\citep{key} (requires natbib)\n% Example: \\citep{doe2024}\n\\citep{${1:key}}$0'
+          };
+          const snippet = map[sel.value] || map['label'];
+          await editor.insertSnippet(new vscode.SnippetString(snippet));
+          return;
+        }
         if (msg?.type === 'runCommand' && typeof msg.command === 'string') {
           const args = Array.isArray(msg.args) ? msg.args : undefined;
           if (args) await vscode.commands.executeCommand(msg.command, ...args);
@@ -608,6 +797,7 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
         `}
 
         <div id="ltx_controls" style="${state.depsOk ? '' : 'display:none;'}">
+        <div class="help" style="margin:6px 0 8px;">Tip: If LaTeX reports a missing package (e.g., hyperref/url, cleveref, biblatex, ulem, xcolor, gb4e), open the TeX Environment section above and run “Check Preamble Packages”.</div>
         <details ${state.texEnvOk ? '' : 'open'}>
           <summary><strong>TeX Environment</strong></summary>
           <div class="help" style="margin:4px 0 8px;">Detect and install a TeX distribution, and verify missing packages from your preamble.</div>
@@ -653,16 +843,8 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
           <div class="help">Tip: For missing formatting packages (e.g., ulem, xcolor), open the TeX Environment section and run “Check Preamble Packages”.</div>
 
           <div class="help" style="margin:16px 0 4px;">Lists and numbered examples</div>
-          <div class="row" style="gap:8px; align-items:center;">
-            <select id="lists_select">
-              <option value="itemize">Bulleted List – itemize</option>
-              <option value="enumerate">Numbered List – enumerate</option>
-              <option value="xlist">Numbered Sub-Examples – xlist (gb4e)</option>
-              <option value="listExample">New List Example – exe + xlist (gb4e)</option>
-              <option value="singleExample">Single Example – exe (gb4e)</option>
-              <option value="listItem">List Item – \item</option>
-            </select>
-            <button class="btn" id="btnInsertListElem">Insert</button>
+          <div class="row">
+            <button class="btn" id="btnListsExamples">Lists/Examples...</button>
           </div>
           <div class="help">Tip: Examples use gb4e/langsci-gb4e. If missing, use TeX Environment → Install Recommended Packages.</div>
         </details>
@@ -720,27 +902,24 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             <label style="min-width:130px;">Folder:</label>
             <select id="ltx_folderSel">
               ${(state.folders||[]).map((f:any,idx:number)=>`<option value="${idx}" ${state.selectedFolderIndex===idx?'selected':''}>${this.escapeAttr(f.name)} — ${this.escapeAttr(f.path)}</option>`).join('')}
-            </select>
+            <details>
           </div>
-          <div class="row">
             <label style="min-width:130px;">Tables output dir:</label>
-            <button class="btn" id="btnBrowseTablesOutputDir">Browse…</button>
+                <button class="btn" id="btnAddSubDoc" title="Create a sub-document and insert an \\input at the cursor (path relative to main TeX if configured, else current file)">Add Sub-Document</button>
           </div>
-          <div class="row">
             <input type="text" id="tables_outputDir" value="${this.escapeAttr(state.tables_outputDir)}" disabled />
-          </div>
+                <button class="btn" id="btnStructure" title="Quick insert common document structure commands (wraps selection or places cursor inside)">Structure...</button>
           <div class="row">
-            <label style="min-width:130px;">Figures output dir:</label>
-            <button class="btn" id="btnBrowseFiguresOutputDir">Browse…</button>
+              <div class="row">
+                <button class="btn" id="btnReferences" title="Insert labels, references, hyperlinks, and citations">References...</button>
+              </div>
           </div>
-          <div class="row">
+                <button class="btn" id="btnFormatting" title="Apply inline formatting (bold, italics, color, URL, etc.)">Formatting...</button>
             <input type="text" id="figure_outputDir" value="${this.escapeAttr(state.figure_outputDir)}" disabled />
-          </div>
-          <div class="row">
+              <div class="help" style="margin:12px 0 4px;">Lists and numbered examples</div>
             <label style="min-width:130px;">Main TeX file:</label>
-            <button class="btn" id="btnBrowseMainTexFile">Browse…</button>
+                <button class="btn" id="btnListsExamples" title="Insert itemize/enumerate lists and gb4e examples">Lists/Examples...</button>
           </div>
-          <div class="row">
             <input type="text" id="tex_mainFile" value="${this.escapeAttr(state.tex_mainFile)}" disabled />
           </div>
           <div class="row">
@@ -830,83 +1009,30 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
               vscode.postMessage({ type: 'addSubDocument' });
             });
           }
-          const btnInsertStructure = document.getElementById('btnInsertStructure');
-          if (btnInsertStructure) {
-            btnInsertStructure.addEventListener('click', () => {
-              const sel = (document.getElementById('structure_select').value || 'section');
-              saveState({ structure_select: sel });
-              vscode.postMessage({ type: 'insertDocStructure', key: sel });
+          const btnStructure = document.getElementById('btnStructure');
+          if (btnStructure) {
+            btnStructure.addEventListener('click', () => {
+              vscode.postMessage({ type: 'openStructurePick' });
             });
           }
-          const btnInsertListElem = document.getElementById('btnInsertListElem');
-          if (btnInsertListElem) {
-            btnInsertListElem.addEventListener('click', () => {
-              const sel = (document.getElementById('lists_select').value || 'itemize');
-              saveState({ lists_select: sel });
-              vscode.postMessage({ type: 'insertListElement', key: sel });
+          const btnFormatting = document.getElementById('btnFormatting');
+          if (btnFormatting) {
+            btnFormatting.addEventListener('click', () => {
+              vscode.postMessage({ type: 'openFormattingPick' });
             });
           }
-          const btnApplyFormat = document.getElementById('btnApplyFormat');
-          if (btnApplyFormat) {
-            btnApplyFormat.addEventListener('click', () => {
-              const sel = (document.getElementById('format_select').value || 'textbf');
-              saveState({ format_select: sel });
-              if (sel === 'textcolor') {
-                const named = (document.getElementById('format_namedColor') && document.getElementById('format_namedColor').value) || '__custom';
-                const hex = (document.getElementById('format_colorPicker') && document.getElementById('format_colorPicker').value) || '#ff0000';
-                saveState({ format_namedColor: named, format_colorPicker: hex });
-                if (named === '__custom') {
-                  vscode.postMessage({ type: 'insertInlineFormat', key: sel, colorModel: 'HTML', colorValue: String(hex || '').replace(/^#/, '').toUpperCase() });
-                } else {
-                  vscode.postMessage({ type: 'insertInlineFormat', key: sel, colorModel: 'named', colorValue: String(named || 'red') });
-                }
-              } else {
-                vscode.postMessage({ type: 'insertInlineFormat', key: sel });
-              }
+          const btnReferences = document.getElementById('btnReferences');
+          if (btnReferences) {
+            btnReferences.addEventListener('click', () => {
+              vscode.postMessage({ type: 'openReferencesPick' });
             });
           }
-          const fmtSel = document.getElementById('format_select');
-          const colorRow = document.getElementById('format_colorRow');
-          const updateColorRow = () => {
-            const v = (fmtSel && fmtSel.value) || 'textbf';
-            if (colorRow) colorRow.style.display = (v === 'textcolor') ? 'flex' : 'none';
-          };
-          if (fmtSel) {
-            fmtSel.addEventListener('change', updateColorRow);
-            // restore UI state
-            const st = getState();
-            try {
-              if (st && typeof st.format_select === 'string') fmtSel.value = st.format_select;
-            } catch {}
-            updateColorRow();
+          const btnListsExamples = document.getElementById('btnListsExamples');
+          if (btnListsExamples) {
+            btnListsExamples.addEventListener('click', () => {
+              vscode.postMessage({ type: 'openListsPick' });
+            });
           }
-          // restore structure dropdown
-          try {
-            const st = getState();
-            const structSel = document.getElementById('structure_select');
-            if (structSel && st && typeof st.structure_select === 'string') structSel.value = st.structure_select;
-          } catch {}
-          // restore lists dropdown
-          try {
-            const st = getState();
-            const listsSel = document.getElementById('lists_select');
-            if (listsSel && st && typeof st.lists_select === 'string') listsSel.value = st.lists_select;
-          } catch {}
-          // restore named/custom color options
-          try {
-            const st = getState();
-            const namedEl = document.getElementById('format_namedColor');
-            const hexEl = document.getElementById('format_colorPicker');
-            if (namedEl && st && typeof st.format_namedColor === 'string') namedEl.value = st.format_namedColor;
-            if (hexEl && st && typeof st.format_colorPicker === 'string') hexEl.value = st.format_colorPicker;
-          } catch {}
-          // save on changes
-          const structSel = document.getElementById('structure_select');
-          if (structSel) structSel.addEventListener('change', () => saveState({ structure_select: structSel.value }));
-          const namedEl = document.getElementById('format_namedColor');
-          if (namedEl) namedEl.addEventListener('change', () => saveState({ format_namedColor: namedEl.value }));
-          const hexEl = document.getElementById('format_colorPicker');
-          if (hexEl) hexEl.addEventListener('input', () => saveState({ format_colorPicker: hexEl.value }));
                     document.getElementById('btnBrowseTablesOutputDir').addEventListener('click', () => {
                       vscode.postMessage({ type: 'chooseFolder', key: 'lingtex.tables.outputDir' });
                     });

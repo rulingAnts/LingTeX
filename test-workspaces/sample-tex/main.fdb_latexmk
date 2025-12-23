@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1766406956.8545 "/Users/Seth/GIT/LingTeX/test-workspaces/sample-tex/main.tex" "main.pdf" "main" 1766406957.18432 0
-  "/Users/Seth/GIT/LingTeX/test-workspaces/sample-tex/main.tex" 1766406907.20374 237 cd56b78a3fa1ea496695f94827e4b124 ""
+["pdflatex"] 1766448079.64313 "/Users/Seth/GIT/LingTeX/test-workspaces/sample-tex/main.tex" "main.pdf" "main" 1766448079.97698 0
+  "/Users/Seth/GIT/LingTeX/test-workspaces/sample-tex/main.tex" 1766448079.39221 236 90cd8956dab1ffe231914400e9890c5a ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm" 1136768653 1324 c910af8c371558dc20f2d7822f66fe64 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmr12.tfm" 1136768653 1288 655e228510b4c2a1abe905c368440826 ""
@@ -28,8 +28,8 @@
   "chapter1/ch1.tex" 1766406938.73904 161 546c125465114764c4a7565f0e4a2f2a ""
   "chapter1/ch2.tex" 1766406904.37969 128 079a742cc600a208afdcbf8d1c0da3e6 ""
   "chapter1/section1/s1.tex" 1766406956.40481 140 ae511a982f4e098504895561a3669d45 ""
-  "main.aux" 1766406957.16645 330 f071a4f58f03605a9a16ec8a0a1ab326 "pdflatex"
-  "main.tex" 1766406907.20374 237 cd56b78a3fa1ea496695f94827e4b124 ""
+  "main.aux" 1766448079.95744 330 f071a4f58f03605a9a16ec8a0a1ab326 "pdflatex"
+  "main.tex" 1766448079.39221 236 90cd8956dab1ffe231914400e9890c5a ""
   (generated)
   "main.aux"
   "main.log"
