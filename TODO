@@ -27,3 +27,6 @@
 	- See roadmap: [ROADMAP-Excel-Tables.md](ROADMAP-Excel-Tables.md)
 - [ ] Add "Export" panel (PDF, Word, HTML)
 - [ ] Have our extension recommend and give instructions for how to use XeLaTeX instead of pdflatex. But also have the abiility to go through our document and convert all unsupported unicode (especially IPA) characters to pdflatex-compatible commands (e.g., using the tipa package).
+
+# Specific features/details to fix:
+	-[ ] Fix the \caption code with the table paste/insert function. (\caption needs a type of table, not figure, and needs to be AFTER \begin{tabularx})
