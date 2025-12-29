@@ -30,3 +30,4 @@
 
 # Specific features/details to fix:
 	-[ ] Fix the \caption code with the table paste/insert function. (\caption needs a type of table, not figure, and needs to be AFTER \begin{tabularx})
+	-[ ] Fix the table paste/insert so that tables are not floating (but also have a floating option).
