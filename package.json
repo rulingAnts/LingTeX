@@ -285,6 +285,25 @@
           "description": "Apply \\openup within the gloss block to increase spacing that also affects wrapped lines.",
           "scope": "resource"
         },
+        "lingtex.interlinear.mergeMorphemeBreaks": {
+          "type": "boolean",
+          "default": true,
+          "description": "When pasting TSV, merge morpheme break characters (e.g. '=', '.', '-') into the corresponding lexical gloss and collapse adjacent tabs before rendering.",
+          "scope": "resource"
+        },
+        "lingtex.interlinear.wrapGrammaticalGlosses": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap grammatical gloss tokens (UPPERCASE) with \\gl{...} (lowercased); preserves separators (=, -, .)",
+          "scope": "resource"
+        },
+        "lingtex.interlinear.grammaticalGlosses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Custom list of grammatical abbreviation tokens to always wrap (case-insensitive). Example: [\"CMP\", \"COP\"]",
+          "scope": "resource"
+        },
         "lingtex.interlinear.openupGlossAmount": {
           "type": "string",
           "default": "1em",

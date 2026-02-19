@@ -10,11 +10,13 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
     };
     const cfg = vscode.workspace.getConfiguration('lingtex');
-    const state = {
+            const state = {
       tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
       excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
       excel_filenameTemplate: cfg.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}'),
       interlinear_outputMode: cfg.get<string>('interlinear.outputMode', 'insert'),
+      interlinear_mergeMorphemeBreaks: cfg.get<boolean>('interlinear.mergeMorphemeBreaks', true),
+              interlinear_wrapGrammaticalGlosses: cfg.get<boolean>('interlinear.wrapGrammaticalGlosses', false),
     };
     webviewView.webview.html = this.getHtml(webviewView.webview, state);
 
@@ -59,8 +61,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
             const cfg = vscode.workspace.getConfiguration('lingtex');
             const state = {
               tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
+              excel_output_location: cfg.get<string>('excel.outputLocation', 'downloads'),
               excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
               excel_filenameTemplate: cfg.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}'),
+              interlinear_mergeMorphemeBreaks: cfg.get<boolean>('interlinear.mergeMorphemeBreaks', true),
             };
             webviewView.webview.html = this.getHtml(webviewView.webview, state);
 
@@ -96,8 +100,10 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                         const cfg = vscode.workspace.getConfiguration('lingtex');
                         const state = {
                           tables_outputDir: cfg.get<string>('tables.outputDir', '${workspaceFolder}/misc/tables'),
+                          excel_output_location: cfg.get<string>('excel.outputLocation', 'downloads'),
                           excel_outputLocation: cfg.get<string>('excel.outputLocation', 'downloads'),
                           excel_filenameTemplate: cfg.get<string>('excel.filenameTemplate', '${basename}-${date}-${time}'),
+                          interlinear_mergeMorphemeBreaks: cfg.get<boolean>('interlinear.mergeMorphemeBreaks', true),
                         };
                         webviewView.webview.html = this.getHtml(webviewView.webview, state);
 
@@ -199,6 +205,14 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                                 <label for="addLabel">Add label</label>
                                 <input type="text" id="labelInput" placeholder="ex: ex:my-example" disabled />
                               </div>
+                              <div class="row">
+                                <input type="checkbox" id="mergeBreaks" ${state.interlinear_mergeMorphemeBreaks ? 'checked' : ''} />
+                                <label for="mergeBreaks">Merge morpheme break chars into gloss</label>
+                              </div>
+                              <div class="row">
+                                <input type="checkbox" id="wrapGrams" ${state.interlinear_wrapGrammaticalGlosses ? 'checked' : ''} />
+                                <label for="wrapGrams">Wrap grammatical glosses with \\gl{}</label>
+                              </div>
                               <div class="row" style="flex-direction:column; align-items:stretch;">
                                 <textarea id="tsvInput" rows="10" style="width:100%; font-family: var(--vscode-editor-font-family, monospace);"></textarea>
                               </div>
@@ -242,6 +256,11 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                                 <label style="min-width:130px;">Excel filename template:</label>
                                 <input type="text" id="excel_filenameTemplate" value="${this.escapeAttr(state.excel_filenameTemplate)}" />
                               </div>
+                              <div class="row" style="flex-direction:column; align-items:stretch;">
+                                <label style="min-width:130px;">Custom grammatical abbreviations (comma-separated):</label>
+                                <input type="text" id="grammList" value="${this.escapeAttr((state.interlinear_grammaticalList||[]).join(','))}" placeholder="e.g. CMP,COP,SIML" />
+                                <button class="btn" id="saveGrammList">Save Gramm. List</button>
+                              </div>
                               <div class="row">
                                 <button class="btn" data-save="tables_outputDir">Save Tables Dir</button>
                                 <button class="btn" data-save="excel_outputLocation">Save Excel Location</button>
@@ -262,6 +281,24 @@ export class LingTeXViewProvider implements vscode.WebviewViewProvider {
                               addLabel.addEventListener('change', () => {
                                 labelInput.disabled = !addLabel.checked;
                                 if (!addLabel.checked) labelInput.value = '';
+                              });
+                              const mergeBreaks = document.getElementById('mergeBreaks');
+                              mergeBreaks.addEventListener('change', () => {
+                                const value = !!mergeBreaks.checked;
+                                vscode.postMessage({ type: 'updateSetting', key: 'lingtex.interlinear.mergeMorphemeBreaks', value });
+                              });
+                              const grammInput = document.getElementById('grammList');
+                              const saveGramm = document.getElementById('saveGrammList');
+                              saveGramm.addEventListener('click', () => {
+                                const raw = (grammInput.value || '').trim();
+                                const arr = raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                vscode.postMessage({ type: 'updateSetting', key: 'lingtex.interlinear.grammaticalGlosses', value: arr });
+                                vscode.postMessage({ type: 'updateSetting', key: 'lingtex.interlinear.wrapGrammaticalGlosses', value: true });
+                              });
+                              const wrapGrams = document.getElementById('wrapGrams');
+                              wrapGrams.addEventListener('change', () => {
+                                const value = !!wrapGrams.checked;
+                                vscode.postMessage({ type: 'updateSetting', key: 'lingtex.interlinear.wrapGrammaticalGlosses', value });
                               });
                               document.getElementById('btnGenerateInterlinear').addEventListener('click', () => {
                                 const tsv = (document.getElementById('tsvInput').value || '').trim();

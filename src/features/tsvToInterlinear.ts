@@ -10,7 +10,6 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
     const isTemplate = content.includes('# TSV → Interlinear input') && content.includes('\n---\n');
 
     if (!isTemplate) {
-      const cfg = vscode.workspace.getConfiguration('lingtex');
       const mode = cfg.get<string>('interlinear.outputMode', 'insert');
       const targetInfo = activeEditor ? { file: require('path').basename(activeEditor.document.fileName), line: activeEditor.selection.active.line + 1 } : null;
       const tmpl = buildEditorTemplate({ outputMode: mode, targetInfo });
@@ -30,7 +29,12 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
       progress.report({ message: 'Parsing editor content…' });
       const parsed = parseEditorContent(content);
       const raw = parsed.tsv;
-      const examples = parseExamples(raw);
+      const cfg = vscode.workspace.getConfiguration('lingtex');
+      const doMerge = cfg.get<boolean>('interlinear.mergeMorphemeBreaks', true);
+          let preprocessed = doMerge ? preprocessMorphemeBreaks(raw) : raw;
+          const doWrap = cfg.get<boolean>('interlinear.wrapGrammaticalGlosses', false);
+          if (doWrap) preprocessed = wrapGrammaticalGlosses(preprocessed);
+      const examples = parseExamples(preprocessed);
       if (examples.length === 0) {
         vscode.window.showErrorMessage('LingTeX: No examples found. Ensure tier lines like "Morphemes", "Lex. Gloss", "Word Gloss", and a "Free" line or a blank line to separate examples.');
         return;
@@ -73,7 +77,6 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
         else return;
       }
 
-      const cfg = vscode.workspace.getConfiguration('lingtex');
       const mode = cfg.get<string>('interlinear.outputMode', 'insert');
       progress.report({ message: mode === 'clipboard' ? 'Copying to clipboard…' : 'Inserting at cursor…' });
       await insertIntoTargetOrClipboard(output + '\n', mode as any);
@@ -91,7 +94,12 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
     if (!content.includes('# TSV → Interlinear input') || !content.includes('\n---\n')) return;
     const parsed = parseEditorContent(content);
     const raw = parsed.tsv;
-    const exs = parseExamples(raw);
+    const cfg = vscode.workspace.getConfiguration('lingtex');
+    const doMerge = cfg.get<boolean>('interlinear.mergeMorphemeBreaks', true);
+      let preprocessed = doMerge ? preprocessMorphemeBreaks(raw) : raw;
+      const doWrap = cfg.get<boolean>('interlinear.wrapGrammaticalGlosses', false);
+      if (doWrap) preprocessed = wrapGrammaticalGlosses(preprocessed);
+    const exs = parseExamples(preprocessed);
     if (exs.length === 0) { vscode.window.showErrorMessage('LingTeX: No examples found in pasted TSV.'); return; }
     let choice: string | undefined;
     if (exs.length === 1) {
@@ -126,7 +134,6 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
       else if (choice === 'multi-text') out = asInterlinearText(exs);
       else return;
     }
-    const cfg = vscode.workspace.getConfiguration('lingtex');
     const mode = cfg.get<string>('interlinear.outputMode', 'insert');
     await insertIntoTargetOrClipboard(out + '\n', mode as any);
     await vscode.commands.executeCommand('setContext', 'lingtex.tsvInterlinearTemplateOpen', false);
@@ -172,6 +179,127 @@ function tokenizeTSVLine(line: string): string[] {
     return cleaned.replace(/ /g, '~');
   };
   return line.split('\t').map(normalizeCell);
+}
+
+function preprocessMorphemeBreaks(tsvRaw: string): string {
+  const breakChars = new Set(['=', '.', '-']);
+  // Split examples by blank lines (preserve blocks)
+  const examples = tsvRaw.split(/\r?\n\s*\r?\n/);
+  const processed = examples.map((block) => {
+    const rows = block.split(/\r?\n/).filter((r) => r.trim().length > 0);
+    if (rows.length === 0) return block;
+    const cells = rows.map((r) => r.split('\t'));
+
+    const normFirst = (arr: string[], i: number) => (arr[i] || '').trim().toLowerCase();
+    let morphemeRow = -1;
+    let lexRow = -1;
+    for (let i = 0; i < cells.length; i++) {
+      const c0 = (cells[i][0] || '').trim().toLowerCase();
+      const c1 = (cells[i][1] || '').trim().toLowerCase();
+      if (c0.startsWith('morpheme') || c1.startsWith('morpheme') || c0.startsWith('morphemes') || c1.startsWith('morphemes')) morphemeRow = i;
+      if (c0.startsWith('lex') || c1.startsWith('lex')) lexRow = i;
+    }
+    if (morphemeRow === -1 || lexRow === -1) return block;
+
+    // Build aligned morpheme and lex arrays starting at dataStart
+    const mRow = cells[morphemeRow];
+    const lRow = cells[lexRow];
+    const mHasNum = /^\d+$/.test((mRow[0] || '').trim());
+    const labelInSecond = (mRow[0] || '').trim() === '' && (mRow[1] || '').toLowerCase().startsWith('morpheme');
+    const dataStart = mHasNum ? 2 : (labelInSecond ? 2 : 1);
+
+    const mTokens = mRow.slice(dataStart).map((c) => (c || '').trim());
+    const lTokens = lRow.slice(dataStart).map((c) => (c || '').trim());
+    const maxLen = Math.max(mTokens.length, lTokens.length);
+    while (mTokens.length < maxLen) mTokens.push('');
+    while (lTokens.length < maxLen) lTokens.push('');
+
+    const newM: string[] = [];
+    const newL: string[] = [];
+    for (let i = 0; i < maxLen; i++) {
+      let curM = mTokens[i] || '';
+      let curL = lTokens[i] || '';
+      if (!curM && !curL) {
+        newM.push(''); newL.push('');
+        continue;
+      }
+      // detect leading or trailing break sequences
+      const lead = (curM.match(/^([=\.\-]+)(.*)$/) || [])[1];
+      const trail = (curM.match(/^(.*?)([=\.\-]+)$/) || [])[2];
+      if (lead && newM.length > 0) {
+        // attach leading break to previous token
+        newM[newM.length - 1] = (newM[newM.length - 1] || '') + curM;
+        // attach break + current lex to previous lex
+        newL[newL.length - 1] = (newL[newL.length - 1] || '') + lead + curL;
+        continue;
+      }
+      if (trail && i + 1 < maxLen) {
+        // merge current and next token
+        const nextM = mTokens[i + 1] || '';
+        const nextL = lTokens[i + 1] || '';
+        newM.push(curM + nextM);
+        newL.push((curL || '') + trail + (nextL || ''));
+        i++; // skip next
+        continue;
+      }
+      newM.push(curM);
+      newL.push(curL);
+    }
+
+    // Reconstruct rows: keep pre-data columns as-is
+    const prefixRows = cells.map((r) => r.slice(0, dataStart));
+    const outRows = cells.map((r, idx) => {
+      const pre = prefixRows[idx] || [];
+      if (idx === morphemeRow) return pre.concat(newM).join('\t');
+      if (idx === lexRow) return pre.concat(newL).join('\t');
+      return r.join('\t');
+    });
+    return outRows.join('\n');
+  });
+  return processed.join('\n\n');
+}
+
+function wrapGrammaticalGlosses(tsvRaw: string): string {
+  const cfg = vscode.workspace.getConfiguration('lingtex');
+  const custom = cfg.get<string[]>('interlinear.grammaticalGlosses', []) ?? [];
+  const customSet = new Set((custom || []).map((s) => (s || '').toLowerCase()));
+  const isGramGloss = (s: string) => /^[A-Z0-9]+(?:\.[A-Z0-9]+)*$/.test(s) || customSet.has(s.toLowerCase());
+  const wrapSub = (part: string) => {
+    // split on periods, wrap uppercase subparts
+    if (isGramGloss(part)) {
+      return part.split('.').map(p => `\\gl{${p.toLowerCase()}}`).join('.');
+    }
+    return part;
+  };
+  const wrapToken = (token: string) => {
+    // preserve = and - as separators
+    const parts = token.split(/([=\-])/);
+    return parts.map(p => (p === '=' || p === '-') ? p : wrapSub(p)).join('');
+  };
+
+  const blocks = tsvRaw.split(/\r?\n\s*\r?\n/);
+  const outBlocks = blocks.map(block => {
+    const rows = block.split(/\r?\n/);
+    const cells = rows.map(r => r.split('\t'));
+    // find lex row by label in col0 or col1
+    let lexRow = -1;
+    for (let i = 0; i < cells.length; i++) {
+      const c0 = (cells[i][0] || '').trim().toLowerCase();
+      const c1 = (cells[i][1] || '').trim().toLowerCase();
+      if (c0.startsWith('lex') || c1.startsWith('lex')) { lexRow = i; break; }
+    }
+    if (lexRow === -1) return block;
+    const lRow = cells[lexRow];
+    const hasNumber = /^\d+$/.test((lRow[0] || '').trim());
+    const dataStart = hasNumber ? 2 : 1;
+    for (let j = dataStart; j < lRow.length; j++) {
+      const tok = (lRow[j] || '').trim();
+      if (!tok) continue;
+      lRow[j] = wrapToken(tok);
+    }
+    return cells.map(c => c.join('\t')).join('\n');
+  });
+  return outBlocks.join('\n\n');
 }
 
 function parseExamples(tsvRaw: string): Example[] {
@@ -282,11 +410,22 @@ function renderGlt(ex: Example): string | null {
     .map((f) => f.text)
     .filter(Boolean)
     .join(' ');
-  return joined || null;
+  // strip leading 'Free' or language label if present
+  const cleaned = joined.replace(/^\s*Free\b\s*/i, '').trim();
+  return cleaned || null;
 }
 
 function latexEscape(s: string): string {
-  return s.replace(/([%$#&_{}])/g, '\\$1').replace(/\u00A0/g, ' ');
+  // Preserve any \gl{...} occurrences while escaping other special chars
+  const placeholders: string[] = [];
+  const marker = '<<<GLPH>>>';
+  const tmp = s.replace(/(\\gl\{[^}]+\})/g, (m) => {
+    placeholders.push(m);
+    return marker + (placeholders.length - 1) + '<<<';
+  });
+  let escaped = tmp.replace(/([%$#&_{}])/g, '\\$1').replace(/\u00A0/g, ' ');
+  escaped = escaped.replace(new RegExp(marker + '(\\d+)<<<', 'g'), (m, idx) => placeholders[Number(idx)]);
+  return escaped;
 }
 
 function renderExampleN(ex: Example): string {
