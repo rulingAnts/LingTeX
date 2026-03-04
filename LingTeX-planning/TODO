@@ -1,6 +1,9 @@
 # ToDo+ — Publish to VS Code Marketplace
-
-- [ ] Create VS Code Marketplace publisher (rulingAnts)
+- [ ] Transfer formatting and spacing of interlinear examples from the paste-interlinear conversion code to the template/styles/preamble in LaTeX
+- [ ] Rework Grammar paper setup to work with, not against LaTeX Workshop/LaTeX Utilities
+- [ ] Begin developing LingTeX as a unified template/VS Workplace/VS extension, and a unified installer that bundles them (and required other extensions: LaTeX Workshop and LaTeX Utilities) together and installs  latest VS Code (if it isn't already installed), Minimal MikTeX/MacTeX (with packages needed for LingTeX template and extension), etc.
+- [ ] Gather specs/templates for Langsci-press, MIT, DIU journal, PNG Data papers, CanIL. Try to make basic template/extension/workplace combo flexible with various stylesheets.
+- [ ] Create VS Code Marketplace publisher (rulingAnts) (maybe less important/useful)
 - [ ] Install vsce (`npm i -D @vscode/vsce` or use npx)
 - [ ] Generate VS Marketplace PAT (Azure DevOps) and set `VSCE_PAT`
 	- Create at https://dev.azure.com → User Settings → Personal Access Tokens → New Token

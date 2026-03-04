@@ -10,6 +10,7 @@ export function registerTsvToInterlinearCommand(context: vscode.ExtensionContext
     const isTemplate = content.includes('# TSV → Interlinear input') && content.includes('\n---\n');
 
     if (!isTemplate) {
+      const cfg = vscode.workspace.getConfiguration('lingtex');
       const mode = cfg.get<string>('interlinear.outputMode', 'insert');
       const targetInfo = activeEditor ? { file: require('path').basename(activeEditor.document.fileName), line: activeEditor.selection.active.line + 1 } : null;
       const tmpl = buildEditorTemplate({ outputMode: mode, targetInfo });
